@@ -37,18 +37,18 @@ const optionsMeta = [
         Decimal: "decimal",
         Fraction: "fraction"
     }),
-    mkOptMeta("Show input", "showInput", true, "checkbox", null, null, null),
+    mkOptMeta("Show input", "showInput", "true", "checkbox", null, null, null),
 
     mkOptMeta("Decimal places", "bnDecimalPlaces", 100, "number", "bignumber", "DECIMAL_PLACES", parseInt),
     mkOptMeta("Pow precision", "bnPowPrecision", 100, "number", "bignumber", "POW_PRECISION", parseInt),
-    mkOptMeta("Crypto", "bnCrypto", false, "checkbox", "bignumber", "CRYPTO", Boolean),
+    mkOptMeta("Crypto", "bnCrypto", "false", "checkbox", "bignumber", "CRYPTO", Boolean),
 
     mkOptMeta("Precision", "decPrecision", 20, "number", "decimal", "precision", parseInt),
     mkOptMeta("Exp negative", "decExpNeg", -7, "number", "decimal", "toExpNeg", parseInt),
     mkOptMeta("Exp positive", "decExpPos", 21, "number", "decimal", "toExpPos", parseInt),
     //mkOptMeta("Min E", "decMinE", -9000000000000000, "number", "decimal", "minE", parseInt),
     //mkOptMeta("Max E", "decMaxE", 9000000000000000, "number", "decimal", "maxE", parseInt),
-    mkOptMeta("Crypto", "decCrypto", false, "checkbox", "decimal", "crypto", Boolean)
+    mkOptMeta("Crypto", "decCrypto", "false", "checkbox", "decimal", "crypto", Boolean)
 ];
 
 const options: Record<string, string> = {};
