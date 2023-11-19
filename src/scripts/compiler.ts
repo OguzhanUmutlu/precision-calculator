@@ -6,7 +6,14 @@ import {CallFunctionToken, FloatToken, GroupToken, IntegerToken, Token, WordToke
 import {throwError} from "./error";
 import {MathTool, MathToolNumber, MathTools, MathToolType} from "./number_tools";
 
-export type Variables<T> = Record<string, T>;
+export type NumberVariable<T> = {
+    type: "number", value: T
+};
+export type FunctionVariable = {
+    type: "function", arguments: string[], code: Token[]
+};
+export type AnyVariable<T> = NumberVariable<T> | FunctionVariable;
+export type Variables<T> = Record<string, AnyVariable<T>>;
 
 export type CompileResult<N> = {
     type: "inline_execution" | "set_variable" | "set_function",
@@ -39,7 +46,6 @@ const operators: Record<string, { p: number, a: "right" | "left" }> = {
 };
 
 export class Compiler<T extends MathToolType = MathToolType, N extends MathToolNumber<T> = MathToolNumber<T>> {
-    functions: Record<string, { arguments: string[], code: Token[] }> = {};
     code: string;
     tool: MathTool<MathToolNumber<T>>;
     class: any;
@@ -79,7 +85,9 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
                     output: [statement.name.value, "is set to", res],
                     time: performance.now() - s
                 });
-                variables[statement.name.value] = res;
+                variables[statement.name.value] = {
+                    type: "number", value: res
+                };
                 continue;
             }
             if (statement.type === "set_function") {
@@ -89,9 +97,8 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
                     output: [`${statement.name.value}(${statement.arguments.join(", ")})`, "is set to", statement.valueInput],
                     time: performance.now() - s
                 });
-                this.functions[statement.name.value] = {
-                    arguments: statement.arguments,
-                    code: statement.value
+                variables[statement.name.value] = {
+                    type: "function", arguments: statement.arguments, code: statement.value
                 };
             }
         }
@@ -191,10 +198,15 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
 
     exprWord(token: WordToken, variables: Variables<N>) {
         const name = token.value;
-        if (!(name in variables)) {
+        const vr = variables[name];
+        if (!vr) {
             throwError(this.code, token.index, "Undefined variable.", token.value.length);
         }
-        return variables[name];
+        if (vr.type === "function") {
+            throwError(this.code, token.index, "Cannot use a function as a variable.", token.value.length);
+            throw "";
+        }
+        return vr.value;
     };
 
     exprGroup(token: GroupToken, variables: Variables<N>) {
@@ -215,7 +227,7 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
             args[j].push(t);
         }
         if (args[args.length - 1].length === 0) args.splice(args.length - 1, 1);
-        const processedArgs = [];
+        const processedArgs: AnyVariable<N>[] = [];
         for (let i = 0; i < args.length; i++) {
             const arg = args[i];
             if (arg.length === 0) {
@@ -224,7 +236,17 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
                     throwError(this.code, a[a.length - 1].index, "Unexpected end of the call argument.");
                 }
             }
-            processedArgs[i] = this.executeExpression(arg[0].index, arg, variables);
+            if (arg.length === 1 && arg[0].type === "word") {
+                const vr = variables[arg[0].value];
+                if (vr && vr.type === "function") {
+                    processedArgs[i] = vr;
+                    continue;
+                }
+            }
+            processedArgs[i] = {
+                type: "number",
+                value: this.executeExpression(arg[0].index, arg, variables)
+            };
         }
         const name = token.name.value;
         const builtIn = this.tool.functions[name];
@@ -232,13 +254,28 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
             if (builtIn.arguments !== Infinity && builtIn.arguments !== processedArgs.length) {
                 throwError(this.code, token.index, "Expected " + builtIn.arguments + ", got " + processedArgs.length, token.value.length);
             }
-            return builtIn.run(processedArgs);
+            const numbers: N[] = [];
+            for (let i = 0; i < processedArgs.length; i++) {
+                const arg = processedArgs[i];
+                if (arg.type === "function") {
+                    throwError(this.code, token.index, "Functions cannot be used as arguments for built-in functions.", token.value.length);
+                    throw "";
+                }
+                numbers.push(arg.value);
+            }
+            return builtIn.run(numbers);
         }
         if (name === "exit") {
             throwError(this.code, token.index, "Exited the program.", token.value.length);
         }
-        const func = this.functions[name];
-        if (!func) throwError(this.code, token.name.index, "Undefined function.", token.name.value.length);
+        const func = variables[name];
+        if (!func) {
+            throwError(this.code, token.name.index, "Undefined function.", token.name.value.length);
+        }
+        if (func.type === "number") {
+            throwError(this.code, token.name.index, "Cannot use a numeric variable as a function.", token.name.value.length);
+            throw "";
+        }
         if (func.arguments.length !== processedArgs.length) {
             throwError(this.code, token.index, "Expected " + func.arguments.length + ", got " + processedArgs.length, token.value.length);
         }
