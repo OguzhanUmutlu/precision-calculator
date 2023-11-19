@@ -46,6 +46,7 @@ const operators: Record<string, { p: number, a: "right" | "left" }> = {
 };
 
 export class Compiler<T extends MathToolType = MathToolType, N extends MathToolNumber<T> = MathToolNumber<T>> {
+    variables: Variables<N> = {};
     code: string;
     tool: MathTool<MathToolNumber<T>>;
     class: any;
@@ -56,7 +57,7 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
         this.class = {bignumber: BigNumber, fraction: Fraction, decimal: Decimal}[tool];
     };
 
-    compile(statements: Statement[], variables: Variables<N> = {}) {
+    compile(statements: Statement[], variables: Variables<N> = this.variables) {
         const result: CompileResult<N>[] = [];
         for (let i = 0; i < statements.length; i++) {
             const statement = statements[i];
@@ -279,7 +280,7 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
         if (func.arguments.length !== processedArgs.length) {
             throwError(this.code, token.index, "Expected " + func.arguments.length + ", got " + processedArgs.length, token.value.length);
         }
-        const vars = {...variables};
+        const vars = {...this.variables};
         for (let i = 0; i < processedArgs.length; i++) {
             vars[func.arguments[i]] = processedArgs[i];
         }

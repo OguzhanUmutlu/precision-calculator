@@ -1,6 +1,17 @@
 import {Token} from "./tokenizer";
 import {throwError} from "./error";
 
+// todo: x y should be interpreted as x * y
+
+// todo: x (y) should be interpreted as x * (y),
+//  but then how do i know if it's a function call,
+//  maybe f(x) is a function call and f (x) isn't hmm, i might do that
+
+// todo: x f(y) should be interpreted as x * f(y)
+
+// todo: make a mode where variables/words have 1 length so xy will be interpreted as x * y etc.
+//  or just make a mode where it includes all these, and call it "Strict Expressions"?
+
 const Brackets: Record<string, string> = {
     "(": ")",
     //"[": "]",
