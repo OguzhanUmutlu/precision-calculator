@@ -1,17 +1,6 @@
 import {Token} from "./tokenizer";
 import {throwError} from "./error";
 
-// todo: x y should be interpreted as x * y
-
-// todo: x (y) should be interpreted as x * (y),
-//  but then how do i know if it's a function call,
-//  maybe f(x) is a function call and f (x) isn't hmm, i might do that
-
-// todo: x f(y) should be interpreted as x * f(y)
-
-// todo: make a mode where variables/words have 1 length so xy will be interpreted as x * y etc.
-//  or just make a mode where it includes all these, and call it "Strict Expressions"?
-
 const Brackets: Record<string, string> = {
     "(": ")",
     //"[": "]",
@@ -30,7 +19,7 @@ export type InlineExecutionStatement = {
 
 export type Statement = SetVariableStatement | SetFunctionStatement | InlineExecutionStatement;
 
-export function groupTokens(code: string, tokens: Token[]) {
+export function groupTokens(code: string, tokens: Token[], strictMode: boolean) {
     const program: any = {type: "group", value: "", children: []};
     let parent: any = program;
     for (let i = 0; i < tokens.length; i++) {
@@ -55,7 +44,7 @@ export function groupTokens(code: string, tokens: Token[]) {
                 delete p.parent;
                 p.closer = token;
                 const back = parent.children[parent.children.length - 1];
-                if (back && back.type === "word") {
+                if (!strictMode && back && back.type === "word") {
                     parent.children.splice(parent.children.length - 1, 1, {
                         type: "call_function", value: back.value + p.value, index: back.index,
                         name: back, opener: p.opener, closer: token, arguments: p

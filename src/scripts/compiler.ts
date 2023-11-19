@@ -50,9 +50,11 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
     code: string;
     tool: MathTool<MathToolNumber<T>>;
     class: any;
+    strictMode: boolean;
 
-    constructor(code: string, tool: T) {
+    constructor(code: string, tool: T, strictMode: boolean) {
         this.code = code;
+        this.strictMode = strictMode;
         this.tool = MathTools[tool];
         this.class = {bignumber: BigNumber, fraction: Fraction, decimal: Decimal}[tool];
     };
@@ -80,6 +82,9 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
                     statement.name.index + statement.name.value.length,
                     statement.value, variables
                 );
+                if (this.strictMode && statement.name.value.length !== 1) {
+                    throwError(this.code, statement.name.index, "In strict mode, variable names can't have more than one character.", statement.name.value.length);
+                }
                 result.push({
                     type: "set_variable",
                     input: statement.input,
@@ -108,6 +113,32 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
 
     executeExpression(index: number, expression: Token[], variables: Variables<N>) {
         if (expression.length === 0) throwError(this.code, index, "Empty expression.", 2);
+        if (this.strictMode) {
+            const newExp: Token[] = [];
+            for (const exp of expression) {
+                if (exp.type === "word") {
+                    for (let i = 0; i < exp.value.length; i++) {
+                        newExp.push({type: "word", index: exp.index + i, value: exp.value[i]});
+                    }
+                    continue;
+                }
+                if (exp.type === "group") {
+                    const back = newExp[newExp.length - 1];
+                    if (back && back.type === "word") {
+                        const vr = variables[back.value];
+                        if (vr && vr.type === "function") {
+                            newExp.splice(newExp.length - 1, 1, {
+                                type: "call_function", value: back.value + exp.value, index: back.index,
+                                name: back, opener: exp.opener, closer: exp.closer, arguments: exp
+                            });
+                            continue;
+                        }
+                    }
+                }
+                newExp.push(exp);
+            }
+            console.log(newExp);
+        }
         if (expression.length === 1) return <N>this.expr(expression[0], variables);
         for (let i = 1; i < expression.length; i += 2) {
             const op = expression[i];

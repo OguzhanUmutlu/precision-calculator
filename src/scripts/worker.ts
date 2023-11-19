@@ -5,18 +5,26 @@ import {BigNumber} from "bignumber.js";
 import {default as Fraction} from "fraction.js";
 import {Decimal} from "decimal.js";
 
+const compilerOptions = {
+    strictMode: false
+};
+
 onmessage = ({data}) => {
     if (data.type === "setOptions") {
         for (const opt of data.options) {
+            if (opt.type === null) {
+                Object.assign(compilerOptions, opt.data);
+                continue;
+            }
             const cl: any = (<any>{bignumber: BigNumber, fraction: Fraction, decimal: Decimal})[opt.type];
             cl.set(opt.data);
         }
         return;
     }
     try {
-        const compiler = new Compiler(data.code, data.tool);
+        const compiler = new Compiler(data.code, data.tool, compilerOptions.strictMode);
         const tokens = tokenize(data.code);
-        const groups = groupTokens(data.code, tokens);
+        const groups = groupTokens(data.code, tokens, compilerOptions.strictMode);
         const ast = interpret(data.code, groups);
         const response = compiler.compile(ast);
         for (let i = 0; i < response.length; i++) {
