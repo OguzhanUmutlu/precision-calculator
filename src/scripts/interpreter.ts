@@ -39,7 +39,7 @@ export function groupTokens(code: string, tokens: Token[]) {
                 continue;
             } else if (token.value === parent.closer) {
                 const p = parent;
-                p.value = code.substring(p.opener.index, p.opener.value.length + token.index + token.value.length - 1);
+                p.value = code.substring(p.opener.index, token.index + token.value.length);
                 parent = p.parent;
                 delete p.parent;
                 p.closer = token;
@@ -98,7 +98,7 @@ export function interpret(code: string, tokens: Token[]) {
                         type: "set_variable",
                         name: token,
                         value: collects,
-                        input: code.substring(token.index, token.value.length + nt.index + nt.value.length - 1)
+                        input: code.substring(token.index, nt.index + nt.value.length)
                     });
                     continue;
                 }
@@ -124,8 +124,8 @@ export function interpret(code: string, tokens: Token[]) {
                     name: token.name,
                     arguments: argumentList,
                     value: collects,
-                    valueInput: code.substring(collects[0].index, collects[0].value.length + nt.index + nt.value.length - 1),
-                    input: code.substring(token.index, token.name.value.length + nt.index + nt.value.length - 1)
+                    valueInput: code.substring(collects[0].index, nt.index + nt.value.length),
+                    input: code.substring(token.index, nt.index + nt.value.length)
                 });
                 continue;
             }
@@ -137,7 +137,7 @@ export function interpret(code: string, tokens: Token[]) {
             statements.push({
                 type: "inline_execution",
                 value: collects,
-                input: code.substring(token.index, token.value.length + nt.index + nt.value.length - 1)
+                input: code.substring(token.index, nt.index + nt.value.length)
             });
             continue;
         }
