@@ -1,4 +1,4 @@
-import {CallFunctionToken, Token} from "./tokenizer";
+import {Token} from "./tokenizer";
 import {throwError} from "./error";
 
 const Brackets: Record<string, string> = {
@@ -8,16 +8,16 @@ const Brackets: Record<string, string> = {
 };
 
 export type SetVariableStatement = {
-    type: "set_variable", name: Token, value: Token[]
+    type: "set_variable", name: Token, value: Token[], input: string
 };
 export type SetFunctionStatement = {
-    type: "set_function", name: Token, arguments: string[], value: Token[]
+    type: "set_function", name: Token, arguments: string[], value: Token[], input: string, valueInput: string
 };
 export type InlineExecutionStatement = {
-    type: "inline_execution", value: Token[]
+    type: "inline_execution", value: Token[], input: string
 };
 
-export type Statement = CallFunctionToken | SetVariableStatement | SetFunctionStatement | InlineExecutionStatement;
+export type Statement = SetVariableStatement | SetFunctionStatement | InlineExecutionStatement;
 
 export function groupTokens(code: string, tokens: Token[]) {
     const program: any = {type: "group", value: "", children: []};
@@ -93,7 +93,13 @@ export function interpret(code: string, tokens: Token[]) {
                     i += 2;
                     const [nI, collects] = findEOL(i, tokens);
                     i = nI;
-                    statements.push({type: "set_variable", name: token, value: collects});
+                    const nt = tokens[i];
+                    statements.push({
+                        type: "set_variable",
+                        name: token,
+                        value: collects,
+                        input: code.substring(token.index, token.value.length + nt.index + nt.value.length - 1)
+                    });
                     continue;
                 }
             }
@@ -103,6 +109,7 @@ export function interpret(code: string, tokens: Token[]) {
                 i += 2;
                 const [nI, collects] = findEOL(i, tokens);
                 i = nI;
+                if (collects.length === 0) throwError(code, next1.index, "Expected an expression after the equals sign.");
                 const argumentList: string[] = [];
                 for (let j = 0; j < token.arguments.children.length; j++) {
                     const arg = token.arguments.children[j];
@@ -111,14 +118,27 @@ export function interpret(code: string, tokens: Token[]) {
                         argumentList.push(arg.value);
                     } else if (arg.value !== ",") throwError(code, arg.index, "Expected a comma between the parameters of the function.", arg.value.length);
                 }
-                statements.push({type: "set_function", name: token.name, arguments: argumentList, value: collects});
+                const nt = tokens[i - 1];
+                statements.push({
+                    type: "set_function",
+                    name: token.name,
+                    arguments: argumentList,
+                    value: collects,
+                    valueInput: code.substring(collects[0].index, collects[0].value.length + nt.index + nt.value.length - 1),
+                    input: code.substring(token.index, token.name.value.length + nt.index + nt.value.length - 1)
+                });
                 continue;
             }
         }
         if (token.type === "call_function" || token.type === "integer" || token.type === "float" || token.type === "word" || token.type === "group") {
             const [nI, collects] = findEOL(i, tokens);
             i = nI;
-            statements.push({type: "inline_execution", value: collects});
+            const nt = tokens[i];
+            statements.push({
+                type: "inline_execution",
+                value: collects,
+                input: code.substring(token.index, token.value.length + nt.index + nt.value.length - 1)
+            });
             continue;
         }
         if (token.value === "\n" || token.value === ";") continue;
@@ -128,9 +148,7 @@ export function interpret(code: string, tokens: Token[]) {
         }
         if (token.type === "operator") {
             throwError(code, token.index, "Unexpected symbol.");
-            continue;
         }
-        statements.push(token);
     }
     return statements;
 }

@@ -8,6 +8,12 @@ import {MathTool, MathToolNumber, MathTools, MathToolType} from "./number_tools"
 
 export type Variables<T> = Record<string, T>;
 
+export type CompileResult<N> = {
+    type: "inline_execution" | "set_variable" | "set_function",
+    input: string,
+    output: (N | string)[]
+};
+
 const operators: Record<string, { p: number, a: "right" | "left" }> = {
     "^": {
         p: 4,
@@ -44,27 +50,47 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
     };
 
     compile(statements: Statement[], variables: Variables<N> = {}) {
+        const result: CompileResult<N>[] = [];
         for (let i = 0; i < statements.length; i++) {
             const statement = statements[i];
             if (statement.type === "inline_execution") {
-                const result = this.executeExpression(statement.value[0].index, statement.value, variables);
-                console.log(result.toString());
+                const res = this.executeExpression(
+                    statement.value[0].index,
+                    statement.value, variables
+                );
+                result.push({
+                    type: "inline_execution",
+                    input: statement.input,
+                    output: [res]
+                });
                 continue;
             }
             if (statement.type === "set_variable") {
-                variables[statement.name.value] = this.executeExpression(
+                const res = this.executeExpression(
                     statement.name.index + statement.name.value.length,
                     statement.value, variables
                 );
+                result.push({
+                    type: "set_variable",
+                    input: statement.input,
+                    output: [statement.name.value, "is set to", res]
+                });
+                variables[statement.name.value] = res;
                 continue;
             }
             if (statement.type === "set_function") {
+                result.push({
+                    type: "set_function",
+                    input: statement.input,
+                    output: [`${statement.name.value}(${statement.arguments.join(", ")})`, "is set to", statement.valueInput]
+                });
                 this.functions[statement.name.value] = {
                     arguments: statement.arguments,
                     code: statement.value
                 };
             }
         }
+        return result;
     };
 
     executeExpression(index: number, expression: Token[], variables: Variables<N>) {
