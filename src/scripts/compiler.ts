@@ -11,7 +11,8 @@ export type Variables<T> = Record<string, T>;
 export type CompileResult<N> = {
     type: "inline_execution" | "set_variable" | "set_function",
     input: string,
-    output: (N | string)[]
+    output: (N | string)[],
+    time: number
 };
 
 const operators: Record<string, { p: number, a: "right" | "left" }> = {
@@ -53,6 +54,7 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
         const result: CompileResult<N>[] = [];
         for (let i = 0; i < statements.length; i++) {
             const statement = statements[i];
+            const s = performance.now();
             if (statement.type === "inline_execution") {
                 const res = this.executeExpression(
                     statement.value[0].index,
@@ -61,7 +63,8 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
                 result.push({
                     type: "inline_execution",
                     input: statement.input,
-                    output: [res]
+                    output: [res],
+                    time: performance.now() - s
                 });
                 continue;
             }
@@ -73,7 +76,8 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
                 result.push({
                     type: "set_variable",
                     input: statement.input,
-                    output: [statement.name.value, "is set to", res]
+                    output: [statement.name.value, "is set to", res],
+                    time: performance.now() - s
                 });
                 variables[statement.name.value] = res;
                 continue;
@@ -82,7 +86,8 @@ export class Compiler<T extends MathToolType = MathToolType, N extends MathToolN
                 result.push({
                     type: "set_function",
                     input: statement.input,
-                    output: [`${statement.name.value}(${statement.arguments.join(", ")})`, "is set to", statement.valueInput]
+                    output: [`${statement.name.value}(${statement.arguments.join(", ")})`, "is set to", statement.valueInput],
+                    time: performance.now() - s
                 });
                 this.functions[statement.name.value] = {
                     arguments: statement.arguments,

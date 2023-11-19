@@ -11,7 +11,7 @@ body {
     user-select: none;
 }
 
-.con1 {
+.code-part {
     width: 100%;
     display: flex;
     align-items: center;
@@ -24,11 +24,11 @@ body {
     margin-top: 10px;
     margin-bottom: 10px;
     width: calc(100% - 20px);
+    max-width: calc(100% - 20px);
+    overflow: hidden;
     height: max-content;
     padding: 10px;
     background: #52565d;
-    display: flex;
-    align-items: center;
 }
 
 .results {
@@ -77,12 +77,7 @@ td {
     margin: 0;
     padding: 5px;
     border: 1px solid white;
-    border-right: none;
     text-align: center;
-}
-
-td:last-child {
-    border-right: 1px solid white;
 }
 
 code {
@@ -93,4 +88,42 @@ code {
     margin-left: 5px;
     margin-right: 5px;
     background: #36393F;
+    word-wrap: anywhere;
+}
+
+.options {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 17px;
+}
+
+.options-table {
+    width: 100%;
+    max-width: 100%;
+}
+
+input {
+    max-width: 110px;
+    outline: none;
+    border: none;
+    background: #52565d;
+    color: white;
+}
+
+select {
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+    background: #52565d;
+    color: white;
+}
+
+.btn {
+    font-family: monospace, serif;
+    font-size: 16px;
+    background: red;
+    color: white;
+    cursor: pointer;
 }
