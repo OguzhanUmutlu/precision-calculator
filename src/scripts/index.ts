@@ -124,7 +124,7 @@ async function onRun() {
     runInterval = window.setInterval(() => { // I used "window" because of TS
         count++;
         counter.innerHTML = count + "s passed";
-        if (count === 10) {
+        if (count === 60) {
             panicTerminate();
             alert("Calculation timed out.");
         }
