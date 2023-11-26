@@ -89,6 +89,26 @@ export type ThrowStatement = {
     input: string,
     throwToken: Token
 };
+export type RepeatTimesStatement = {
+    type: "repeat_times",
+    amount: Token[],
+    scope: Statement[],
+    valueAmount: string,
+    input: string,
+    repeatToken: Token,
+    timesToken: Token
+};
+export type RepeatTimesWithStatement = {
+    type: "repeat_times_with",
+    amount: Token[],
+    variable: string,
+    scope: Statement[],
+    valueAmount: string,
+    input: string,
+    repeatToken: Token,
+    timesToken: Token,
+    withToken: Token
+};
 
 export type Statement = SetVariableStatement
     | SetFunctionStatement
@@ -101,7 +121,9 @@ export type Statement = SetVariableStatement
     | ElseStatement
     | ElseIfStatement
     | PrintStatement
-    | ThrowStatement;
+    | ThrowStatement
+    | RepeatTimesStatement
+    | RepeatTimesWithStatement;
 
 export function groupTokens(code: string, tokens: Token[], strictMode: boolean) {
     const program: any = {type: "group", value: "", children: []};
@@ -185,7 +207,59 @@ export function interpret(code: string, tokens: Token[]) {
         const next1 = tokens[i + 1];
         if (token.type === "word") {
             if (next1) {
-                if ((token.value === "let" || token.value === "const" && next1.type === "word") || next1.value === "=") {
+                if (next1.type === "operator") {
+                    const next2 = tokens[i + 2];
+                    if (next1.value === next2.value && (next1.value === "+" || next1.value === "-")) {
+                        i += 2;
+                        statements.push({
+                            type: "set_variable",
+                            name: token,
+                            value: [
+                                {type: "word", index: token.index, value: token.value},
+                                next1,
+                                {type: "integer", index: token.index, value: "1"}
+                            ],
+                            input: token.value + " = " + token.value + " + 1",
+                            new: false,
+                            constant: false
+                        });
+                        continue;
+                    }
+                    if (next2.value === "=") {
+                        i += 3;
+                        const [nI, collects] = findEOL(i, tokens);
+                        i = nI;
+                        if (collects.length < 1) {
+                            throwError(code, token.index, "Expected an expression for the variable declaration statement.");
+                        }
+                        const fs = collects[0];
+                        const ls = collects[collects.length - 1];
+                        statements.push({
+                            type: "set_variable",
+                            name: token,
+                            value: [
+                                {type: "word", index: token.index, value: token.value},
+                                next1,
+                                {
+                                    type: "group",
+                                    value: "",
+                                    children: collects,
+                                    index: token.index,
+                                    opener: {type: "symbol", value: "(", index: token.index},
+                                    closer: {type: "symbol", value: ")", index: token.index}
+                                }
+                            ],
+                            input: token.value + " = " + token.value + " * (" + code.substring(fs.index, ls.index + ls.value.length) + ")",
+                            new: false,
+                            constant: false
+                        });
+                        continue;
+                    }
+                }
+                if (((token.value === "let" || token.value === "const") && next1.type === "word") || next1.value === "=") {
+                    // let x = 10 + 20
+                    // const x = 10 + 20
+                    // x = 10 + 20
                     let name = token;
                     if (next1.type === "word") {
                         const next2 = tokens[i + 2];
@@ -213,6 +287,7 @@ export function interpret(code: string, tokens: Token[]) {
                     continue;
                 }
                 if (token.value === "return") {
+                    // return x + y
                     i++;
                     const [nI, collects] = findEOL(i, tokens);
                     i = nI;
@@ -229,6 +304,7 @@ export function interpret(code: string, tokens: Token[]) {
                     continue;
                 }
                 if (token.value === "if") {
+                    // if x == y {}
                     i++;
                     const find = findToken(i, tokens, token => token.type === "group" && token.opener.value === "{");
                     if (!find) {
@@ -241,6 +317,9 @@ export function interpret(code: string, tokens: Token[]) {
                         throwError(code, token.index, "An if statement has to have a requirement expression.", token.value.length);
                     }
                     const last = <GroupToken>collects.splice(-1, 1)[0];
+                    if (last.type !== "group") {
+                        throwError(code, last.index, "Expected a curly brace scope for the if statement.")
+                    }
                     const last2 = <Token>collects.at(-1);
                     statements.push({
                         type: "if",
@@ -253,6 +332,7 @@ export function interpret(code: string, tokens: Token[]) {
                     continue;
                 }
                 if (token.value === "else" && next1 && next1.type === "group" && next1.opener.value === "{") {
+                    // { 2 + 2 }
                     i++;
                     const lastSt = statements[statements.length - 1];
                     if (!lastSt || (lastSt.type !== "if" && lastSt.type !== "elseif")) {
@@ -267,6 +347,7 @@ export function interpret(code: string, tokens: Token[]) {
                     continue;
                 }
                 if (token.value === "else" && next1.type === "word" && next1.value === "if") {
+                    // else if x == y {}
                     i += 2;
                     const find = findToken(i, tokens, token => token.type === "group" && token.opener.value === "{");
                     if (!find) {
@@ -283,6 +364,9 @@ export function interpret(code: string, tokens: Token[]) {
                         throwError(code, token.index, "Expected an if statement before an else-if statement.", token.value.length)
                     }
                     const last = <GroupToken>collects.splice(-1, 1)[0];
+                    if (last.type !== "group") {
+                        throwError(code, last.index, "Expected a curly brace scope for the else-if statement.")
+                    }
                     const last2 = <Token>collects.at(-1);
                     statements.push({
                         type: "elseif",
@@ -296,6 +380,7 @@ export function interpret(code: string, tokens: Token[]) {
                     continue;
                 }
                 if (token.value === "print") {
+                    // print some text
                     i++;
                     const [nI, collects] = findEOL(i, tokens);
                     if (collects.length > 0) {
@@ -312,6 +397,7 @@ export function interpret(code: string, tokens: Token[]) {
                     } else i--;
                 }
                 if (token.value === "throw") {
+                    // throw some text
                     i++;
                     const [nI, collects] = findEOL(i, tokens);
                     if (collects.length > 0) {
@@ -328,36 +414,91 @@ export function interpret(code: string, tokens: Token[]) {
                         continue;
                     } else i--;
                 }
+                if (token.value === "repeat") {
+                    i++;
+                    const find = findToken(i, tokens, token => token.type === "group" && token.opener.value === "{");
+                    if (!find) {
+                        throwError(code, token.index, "Expected a scope for the repeat statement inside curly brackets.", next1.index + next1.value.length - token.index);
+                        throw "";
+                    }
+                    const [nI, collects] = find;
+                    i = nI;
+                    const ls2 = collects[collects.length - 2];
+                    const ls3 = collects[collects.length - 3];
+                    const ls4 = collects[collects.length - 4];
+                    if (next1.value === "until") {
+                        // repeat until a == b {}
+                        collects.splice(0, 1);
+                        if (collects.length < 2) {
+                            throwError(code, token.index, "A repeat-until statement has to have a requirement expression.", next1.index + next1.value.length - token.index);
+                        }
+                        const last = <GroupToken>collects.splice(-1, 1)[0];
+                        if (last.type !== "group") {
+                            throwError(code, last.index, "Expected a curly brace scope for the repeat-until statement.")
+                        }
+                        const last2 = <Token>collects.at(-1);
+                        statements.push({
+                            type: "repeat_until",
+                            requirement: collects,
+                            scope: interpret(code, last.children),
+                            valueRequirement: code.substring(collects[0].index, last2.index + last2.value.length),
+                            input: code.substring(token.index, last.index + last.value.length),
+                            repeatToken: token
+                        });
+                    } else if (ls2 && ls2.type === "word" && ls2.value === "times") {
+                        // repeat a + b + c times {}
+                        collects.splice(collects.length - 2, 1);
+                        if (collects.length < 2) {
+                            throwError(code, token.index, "Repeat-times statement has to have an amount expression given to it.", next1.index + next1.value.length - token.index);
+                        }
+                        const last = <GroupToken>collects.splice(-1, 1)[0];
+                        if (last.type !== "group") {
+                            throwError(code, last.index, "Expected a curly brace scope for the repeat-times statement.")
+                        }
+                        const last2 = <Token>collects.at(-1);
+                        statements.push({
+                            type: "repeat_times",
+                            amount: collects,
+                            scope: interpret(code, last.children),
+                            valueAmount: code.substring(collects[0].index, last2.index + last2.value.length),
+                            input: code.substring(token.index, last.index + last.value.length),
+                            repeatToken: token,
+                            timesToken: ls2
+                        });
+                    } else if (ls4 && ls4.value === "times" && ls3.value === "with" && ls2.type === "word") {
+                        // repeat a + b + c times with i {}
+                        // where 'i' is going from 1 to (a + b + c)
+                        collects.splice(collects.length - 4, 3);
+                        if (collects.length < 2) {
+                            throwError(code, token.index, "Repeat-times statement has to have an amount expression given to it.", next1.index + next1.value.length - token.index);
+                        }
+                        const last = <GroupToken>collects.splice(-1, 1)[0];
+                        if (last.type !== "group") {
+                            throwError(code, last.index, "Expected a curly brace scope for the repeat-times statement.")
+                        }
+                        const last2 = <Token>collects.at(-1);
+                        statements.push({
+                            type: "repeat_times_with",
+                            amount: collects,
+                            variable: ls2.value,
+                            scope: interpret(code, last.children),
+                            valueAmount: code.substring(collects[0].index, last2.index + last2.value.length),
+                            input: code.substring(token.index, last.index + last.value.length),
+                            repeatToken: token,
+                            timesToken: ls4,
+                            withToken: ls3
+                        });
+                    } else {
+                        throwError(code, token.index, "Invalid repeat statement.", token.value.length);
+                    }
+                    continue;
+                }
             }
             if (token.value === "break") {
                 statements.push({
                     type: "break",
                     input: token.value,
                     breakToken: token
-                });
-                continue;
-            }
-            if (token.value === "repeat" && next1 && next1.value === "until") {
-                i += 2;
-                const find = findToken(i, tokens, token => token.type === "group" && token.opener.value === "{");
-                if (!find) {
-                    throwError(code, token.index, "Expected a scope for the 'repeat until' statement inside curly brackets.", next1.index + next1.value.length - token.index);
-                    throw "";
-                }
-                const [nI, collects] = find;
-                i = nI;
-                if (collects.length < 2) {
-                    throwError(code, token.index, "A 'repeat until' statement has to have a requirement expression.", next1.index + next1.value.length - token.index);
-                }
-                const last = <GroupToken>collects.splice(-1, 1)[0];
-                const last2 = <Token>collects.at(-1);
-                statements.push({
-                    type: "repeat_until",
-                    requirement: collects,
-                    scope: interpret(code, last.children),
-                    valueRequirement: code.substring(collects[0].index, last2.index + last2.value.length),
-                    input: code.substring(token.index, last.index + last.value.length),
-                    repeatToken: token
                 });
                 continue;
             }

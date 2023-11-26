@@ -117,7 +117,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
         };
         for (let i = 0; i < statements.length; i++) {
             const statement = statements[i];
-            const s = performance.now();
+            const s = Date.now();
             if (statement.type === "break") {
                 lastResult = breakResult;
                 break;
@@ -131,7 +131,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     type: "inline_execution",
                     input: statement.input,
                     output: [res],
-                    time: performance.now() - s
+                    time: Date.now() - s
                 };
                 break;
             }
@@ -146,7 +146,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                         type: "inline_execution",
                         input: statement.input,
                         output: [res],
-                        time: performance.now() - s
+                        time: Date.now() - s
                     });
                 }
                 continue;
@@ -170,7 +170,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     type: "set_variable",
                     input: statement.input,
                     output: [statement.name.value, "is set to", res],
-                    time: performance.now() - s
+                    time: Date.now() - s
                 });*/
                 if (existing && !statement.new) {
                     Object.assign(existing.variable, {
@@ -188,7 +188,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     type: "set_function",
                     input: statement.input,
                     output: [`${statement.name.value}(${statement.arguments.join(", ")})`, "is set to", statement.valueInput],
-                    time: performance.now() - s
+                    time: Date.now() - s
                 });*/
                 const existing = this.findVariable(scope, statement.name.value);
                 if (existing && existing.variable.constant) {
@@ -209,7 +209,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     type: "repeat_until",
                     input: statement.input,
                     output: [`a repeat loop will continue until`, statement.valueRequirement],
-                    time: performance.now() - s
+                    time: Date.now() - s
                 });*/
 
                 for (; ;) {
@@ -227,7 +227,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     type: "loop",
                     input: statement.input,
                     output: ["loop"],
-                    time: performance.now() - s
+                    time: Date.now() - s
                 });*/
 
                 for (; ;) {
@@ -243,7 +243,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     type: "if",
                     input: statement.input,
                     output: [`the code will be executed if`, statement.valueRequirement],
-                    time: performance.now() - s
+                    time: Date.now() - s
                 });*/
 
                 const req = this.executeExpression(statement.ifToken.index, statement.requirement, scope);
@@ -257,12 +257,55 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     }
                 }
             }
+            if (statement.type === "repeat_times") {
+                /*this.result.push(lastResult = {
+                    type: "repeat_times",
+                    input: statement.input,
+                    output: [`a repeat loop will continue`, statement.valueAmount, `times`],
+                    time: Date.now() - s
+                });*/
+
+                const amount = parseFloat(this.executeExpression(statement.repeatToken.index, statement.amount, scope).toString());
+                let breaks = false;
+                for (let i = 0; i < amount; i++) {
+                    const res = this.compile(statement.scope, scope);
+                    if (res && res.type === "break") {
+                        breaks = true;
+                        break;
+                    }
+                }
+                if (breaks) break;
+                continue;
+            }
+            if (statement.type === "repeat_times_with") {
+                /*this.result.push(lastResult = {
+                    type: "repeat_times_with",
+                    input: statement.input,
+                    output: [`a repeat loop will continue`, statement.valueAmount, `times`],
+                    time: Date.now() - s
+                });*/
+
+                const amount = parseFloat(this.executeExpression(statement.repeatToken.index, statement.amount, scope).toString());
+                let breaks = false;
+                for (let i = 0; i < amount; i++) {
+                    const res = this.compile(statement.scope, {
+                        parent: scope,
+                        variables: {i: {type: "number", value: new this.class(i + 1), constant: true}}
+                    });
+                    if (res && res.type === "break") {
+                        breaks = true;
+                        break;
+                    }
+                }
+                if (breaks) break;
+                continue;
+            }
             if (statement.type === "else") {
                 /*this.result.push(lastResult = {
                     type: "else",
                     input: statement.input,
                     output: [`the code will be executed if the last if succeeded`],
-                    time: performance.now() - s
+                    time: Date.now() - s
                 });*/
                 if (!lastIf) {
                     const res = this.compile(statement.scope, scope);
@@ -277,7 +320,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     type: "elseif",
                     input: statement.input,
                     output: [`the code will be executed if the last if succeeded and if`, statement.valueRequirement],
-                    time: performance.now() - s
+                    time: Date.now() - s
                 });*/
                 if (!lastIf) {
                     const req = this.executeExpression(statement.ifToken.index, statement.requirement, scope);
@@ -297,7 +340,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     type: "print",
                     input: statement.input,
                     output: [statement.text],
-                    time: performance.now() - s
+                    time: Date.now() - s
                 });
             }
             if (statement.type === "throw") {
