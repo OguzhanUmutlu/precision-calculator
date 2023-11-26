@@ -1,6 +1,13 @@
-const blue = "#2f89ff";
-const red = "#ff2424";
+export const ERR_BLUE = "#2f89ff";
+export const ERR_RED = "#ff2424";
 
+/**
+ * @throws Error
+ * @param code
+ * @param index
+ * @param error
+ * @param length
+ */
 export function throwError(code: string, index: number, error: string, length = 1): any {
     const lines = code.split("\n");
     let line = 0;
@@ -24,23 +31,23 @@ export function throwError(code: string, index: number, error: string, length = 
                 "%c> %c" + (l + 1) + " | " + a +
                 "%c" + b +
                 "%c" + c,
-                "color: " + red,
-                "color: " + blue,
-                "color: " + red,
-                "color: " + blue
+                "color: " + ERR_RED,
+                "color: " + ERR_BLUE,
+                "color: " + ERR_RED,
+                "color: " + ERR_BLUE
             );
-            res.push(`<span style="color: ${red}">>&nbsp;</span>` +
-                `<span style="color: ${blue}">${l + 1}&nbsp;|&nbsp;</span>` +
-                `<span style="color: ${blue}">${a}</span>` +
-                `<span style="color: ${red}">${b}</span>` +
-                `<span style="color: ${blue}">${c}</span>`);
+            res.push(`<span style="color: ${ERR_RED}">>&nbsp;</span>` +
+                `<span style="color: ${ERR_BLUE}">${l + 1}&nbsp;|&nbsp;</span>` +
+                `<span style="color: ${ERR_BLUE}">${a}</span>` +
+                `<span style="color: ${ERR_RED}">${b}</span>` +
+                `<span style="color: ${ERR_BLUE}">${c}</span>`);
             //console.log("%c" + " ".repeat(key + l.toString().length + 4) + "^".repeat(length), "color: " + red);
         } else {
-            console.log("%c  " + (l + 1) + " | " + lines[l], "color: " + blue);
-            res.push(`&nbsp;&nbsp;<span style="color: ${blue}">${l + 1}&nbsp;|&nbsp;${lines[l]}</span>`);
+            console.log("%c  " + (l + 1) + " | " + lines[l], "color: " + ERR_BLUE);
+            res.push(`&nbsp;&nbsp;<span style="color: ${ERR_BLUE}">${l + 1}&nbsp;|&nbsp;${lines[l]}</span>`);
         }
     }
-    res.push(``,`<span style="color: ${red}">Error: ${error}</span>`);
+    res.push(``,`<span style="color: ${ERR_RED}">Error: ${error}</span>`);
     console.error(error);
     throw res;
 }

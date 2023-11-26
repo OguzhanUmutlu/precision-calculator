@@ -1,9 +1,10 @@
-import {Compiler} from "./compiler";
+import {Runner} from "./runner";
 import {tokenize} from "./tokenizer";
 import {groupTokens, interpret} from "./interpreter";
 import {BigNumber} from "bignumber.js";
 import {default as Fraction} from "fraction.js";
 import {Decimal} from "decimal.js";
+import {ERR_RED} from "./error";
 
 const compilerOptions = {
     strictMode: false
@@ -22,11 +23,14 @@ onmessage = ({data}) => {
         return;
     }
     try {
-        const compiler = new Compiler(data.code, data.tool, compilerOptions.strictMode);
+        const compiler = new Runner(data.code, data.tool, compilerOptions.strictMode);
         const tokens = tokenize(data.code);
         const groups = groupTokens(data.code, tokens, compilerOptions.strictMode);
         const ast = interpret(data.code, groups);
-        const response = compiler.compile(ast);
+        compiler.compile(ast, {
+            variables: compiler.variables
+        });
+        const response = compiler.result;
         for (let i = 0; i < response.length; i++) {
             const {output} = response[i];
             for (let j = 0; j < output.length; j++) {
@@ -40,7 +44,10 @@ onmessage = ({data}) => {
         }
         postMessage({id: data.id, response, success: true});
     } catch (e) {
-        if (e instanceof Error) throw e;
+        if (e instanceof Error) {
+            console.error(e);
+            e = [`<span style="color: ${ERR_RED}">JavaScript: ${e.toString()}</span>`];
+        }
         postMessage({id: data.id, response: e, success: false});
     }
 };

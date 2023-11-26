@@ -20,9 +20,9 @@ export type Token =
     | CallFunctionToken;
 
 const Operators = [
-    "+", "-", "*", "/", "%", "^", ">", "<"
+    "+", "-", "*", "/", "%", "^", ">", "<", "!"
 ];
-const Operators2 = [">=", "<="];
+const Operators2 = [">=", "<=", "==", "!="];
 const Symbols = [
     "+", "-", "*", "/", "^", "=",
     "(", ")", "[", "]", "{", "}",
@@ -30,11 +30,11 @@ const Symbols = [
 ];
 const Ignores: string[] = [" "];
 const Digits: string[] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-const All: string[] = [
+const AllExceptDigits: string[] = [
     ...Operators,
     ...Symbols,
     ...Ignores,
-    ...Digits,
+    //...Digits,
     "#"
 ];
 
@@ -43,19 +43,20 @@ export function tokenize(code: string) {
     for (let i = 0; i < code.length; i++) {
         const char = code[i];
         if (Ignores.includes(char)) continue;
-        if (Operators.includes(char)) {
-            tokens.push({type: "operator", index: i, value: char});
-            continue;
-        }
         let f = false;
         for (const op of Operators2) {
             if (code.substring(i, i + op.length) === op) {
                 f = true;
                 tokens.push({type: "operator", index: i, value: op});
+                i += op.length - 1;
                 break;
             }
         }
         if (f) continue;
+        if (Operators.includes(char)) {
+            tokens.push({type: "operator", index: i, value: char});
+            continue;
+        }
         if (Symbols.includes(char)) {
             tokens.push({type: "symbol", index: i, value: char});
             continue;
@@ -90,6 +91,7 @@ export function tokenize(code: string) {
             for (; i < code.length; i++) {
                 if (code[i] === "\n") break;
             }
+            i--;
             continue;
         }
         let word = char;
@@ -97,7 +99,7 @@ export function tokenize(code: string) {
         i++;
         for (; i < code.length; i++) {
             const char1 = code[i];
-            if (All.includes(char1)) {
+            if (AllExceptDigits.includes(char1)) {
                 i--;
                 break;
             }

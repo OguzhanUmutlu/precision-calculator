@@ -1,5 +1,5 @@
-import {CompileResult} from "./compiler";
-import {AnyMathToolNumber, MathToolType} from "./number_tools";
+import {CompileResult} from "./runner";
+import {AnyMathToolNumber, MathTools, MathToolType} from "./number_tools";
 import {BigNumber} from "bignumber.js";
 import {default as Fraction} from "fraction.js";
 import {Decimal} from "decimal.js";
@@ -14,6 +14,18 @@ const btn = <HTMLButtonElement>document.querySelector(".compute");
 const textarea = <HTMLTextAreaElement>document.querySelector("textarea");
 const results = <HTMLDivElement>document.querySelector(".results");
 const optionsTable = <HTMLTableElement>document.querySelector(".options-table");
+const shortcutsDiv = <HTMLDivElement>document.querySelector(".shortcuts");
+const githubIcons = document.querySelectorAll<HTMLDivElement>(".github-icon");
+const designPerfOpt = localStorage.getItem(".design-perf") === "1";
+const designPerfBtn = <HTMLButtonElement>document.querySelector(".design-performance");
+if (designPerfOpt) {
+    const link = <HTMLLinkElement>document.querySelector("link[rel=stylesheet]");
+    link.href = "./src/style-less.css";
+}
+designPerfBtn.addEventListener("click", () => {
+    localStorage.setItem(".design-perf", designPerfOpt ? "0" : "1");
+    location.reload();
+});
 
 function mkOptMeta(label: any, id: any, def: any, input: string, type: any, k: any, cb: any, extra?: any) {
     return {
@@ -32,9 +44,9 @@ function mkOptMeta(label: any, id: any, def: any, input: string, type: any, k: a
 }
 
 const optionsMeta = [
-    mkOptMeta("Package type", "packageType", "bignumber", "select", null, null, null, {
-        Number: "bignumber",
+    mkOptMeta("Package type", "packageType", "decimal", "select", null, null, null, {
         Decimal: "decimal",
+        Number: "bignumber",
         Fraction: "fraction"
     }),
     mkOptMeta("Show input", "showInput", "true", "checkbox", null, null, null),
@@ -82,7 +94,6 @@ async function runWorker(code: string, type: MathToolType): Promise<WorkerRespon
 }
 
 let code = localStorage.getItem(".code") ?? "";
-let packageType = localStorage.getItem(".packageType") ?? "bignumber";
 textarea.value = code;
 textarea.rows = Math.min(code.split("\n").length + 1, 20);
 
@@ -102,7 +113,7 @@ let isRunning = false;
 let runInterval = -1;
 
 async function onRun() {
-    results.innerHTML = `<div>Loading...&nbsp;<div class="btn" onclick="panic()">Terminate</div>&nbsp;<span id="counter">0</span></div>`;
+    results.innerHTML = `<div>Loading...&nbsp;<span id="counter"></span>&nbsp;<span class="btn" onclick="panic()">Terminate</span></div>`;
     clearInterval(runInterval);
     if (isRunning) {
         createWorker();
@@ -110,15 +121,15 @@ async function onRun() {
     isRunning = true;
     let count = 0;
     const counter = <HTMLSpanElement>document.getElementById("counter");
-    runInterval = window.setInterval(() => { // I used window because of TS
+    runInterval = window.setInterval(() => { // I used "window" because of TS
         count++;
         counter.innerHTML = count + "s passed";
-        if (count === 5) {
+        if (count === 10) {
             panicTerminate();
             alert("Calculation timed out.");
         }
     }, 1000);
-    const res = await runWorker(code, <MathToolType>packageType);
+    const res = await runWorker(code, <MathToolType>options.packageType);
     clearInterval(runInterval);
     isRunning = false;
     results.innerHTML = ``;
@@ -127,7 +138,7 @@ async function onRun() {
             for (let i = 0; i < r.output.length; i++) {
                 const out = r.output[i];
                 if (typeof out === "object") {
-                    const tool: any = {bignumber: BigNumber, fraction: Fraction, decimal: Decimal}[packageType];
+                    const tool: any = {bignumber: BigNumber, fraction: Fraction, decimal: Decimal}[options.packageType];
                     const n = new tool("0");
                     for (const j in out) n[j] = (<any>out)[j];
                     r.output[i] = n;
@@ -237,23 +248,81 @@ for (const meta of optionsMeta) {
         let v = cb.type === "checkbox" ? cb.checked : cb.value;
         if (meta.cb) v = meta.cb(v);
         options[meta.id] = v;
-        console.log(meta.id, v);
         localStorage.setItem(".options." + meta.id, v);
         meta.change(v);
-        if (meta.id === "packageType") for (const t in trChecks) {
-            const v = trChecks[t][0].hidden();
-            trChecks[t][1].hidden = v;
-            trChecks[t][2].hidden = v;
+        if (meta.id === "packageType") {
+            for (const t in trChecks) {
+                const v = trChecks[t][0].hidden();
+                trChecks[t][1].hidden = v;
+                trChecks[t][2].hidden = v;
+            }
+            updateOptions();
         }
     });
 
     tr2.appendChild(td);
 }
 
+function addShortcut(html: string, copy = html) {
+    const el = document.createElement("div");
+    el.innerHTML = html;
+    el.addEventListener("click", () => {
+        const cursorPosition = textarea.selectionStart;
+        const textBeforeCursor = textarea.value.substring(0, cursorPosition);
+        const textAfterCursor = textarea.value.substring(cursorPosition);
+        textarea.value = textBeforeCursor + copy + textAfterCursor;
+        const newPosition = cursorPosition + copy.length;
+        textarea.setSelectionRange(newPosition, newPosition);
+        textarea.focus();
+    });
+    shortcutsDiv.appendChild(el);
+}
+
+const fastVariables = ["x", "y", "z", "t", "w", "u"];
+
 function updateOptions() {
     for (const meta of optionsMeta) {
         meta.change(options[meta.id]);
     }
+    shortcutsDiv.innerHTML = "";
+    const tool = MathTools[<MathToolType>options.packageType];
+    for (const name in tool.constants) {
+        addShortcut(name, name);
+    }
+    for (const name in tool.functions) {
+        let text = name + "(";
+        const amount = tool.functions[name].arguments;
+        if (amount === Infinity) {
+            text += `x<sub>1</sub>, x<sub>2</sub>, ...`;
+        } else if (amount <= fastVariables.length) {
+            text += fastVariables.slice(0, amount).join(", ");
+        } else {
+            for (let i = 1; i <= amount; i++) {
+                text += `x<sub>${i}</sub>`;
+                if (i !== amount) text += `, `;
+            }
+        }
+        addShortcut(text + ")", name + "(" + (amount === 0 ? ")" : ""))
+    }
 }
+
+for (const el of githubIcons) {
+    el.addEventListener("click", () => {
+        open("https://github.com/OguzhanUmutlu/precision-calculator", "_blank");
+    });
+}
+
+let githubVisibility = true;
+
+setInterval(() => {
+    const vis = scrollY < 50;
+    if (vis === githubVisibility) return;
+    githubVisibility = vis;
+    const m = vis ? 1 / 10 : 10;
+    for (const el of githubIcons) {
+        const s = el.style.translate.split(" ");
+        el.style.translate = `${parseFloat(s[0].slice(0, -2)) * m}px ${parseFloat(s[1].slice(0, -2)) * m}px`;
+    }
+});
 
 createWorker();
