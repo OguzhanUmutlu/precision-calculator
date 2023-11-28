@@ -159,7 +159,7 @@ ${options.showInput ? `
     <div style="text-align: center">
         Output:<br><div style="font-size: 13px; translate: 0 -3px">(in ${r.time.toFixed(3)}ms)</div>
     </div>
-    <code style="max-width: calc(100% - 100px)">${r.output.map(i => i.toString()).join(" ")}</code>
+    <code style="max-width: calc(100% - 100px)">${r.output.map(i => typeof i === "string" ? i : ("toFixed" in i ? i.toFixed() : i.toString())).join(" ")}</code>
 </div>`;
             results.appendChild(div);
         }

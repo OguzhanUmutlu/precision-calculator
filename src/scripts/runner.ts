@@ -265,7 +265,8 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     time: Date.now() - s
                 });*/
 
-                const amount = parseFloat(this.executeExpression(statement.repeatToken.index, statement.amount, scope).toString());
+                const r = this.executeExpression(statement.repeatToken.index, statement.amount, scope);
+                const amount = parseFloat("toFixed" in r ? r.toFixed() : r.toString());
                 let breaks = false;
                 for (let i = 0; i < amount; i++) {
                     const res = this.compile(statement.scope, scope);
@@ -285,7 +286,8 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                     time: Date.now() - s
                 });*/
 
-                const amount = parseFloat(this.executeExpression(statement.repeatToken.index, statement.amount, scope).toString());
+                const r = this.executeExpression(statement.repeatToken.index, statement.amount, scope);
+                const amount = parseFloat("toFixed" in r ? r.toFixed() : r.toString());
                 let breaks = false;
                 for (let i = 0; i < amount; i++) {
                     const res = this.compile(statement.scope, {
