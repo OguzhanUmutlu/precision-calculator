@@ -51,6 +51,7 @@ const optionsMeta = [
     }),
     mkOptMeta("Show input", "showInput", "true", "checkbox", null, null, null),
     mkOptMeta("Strict mode", "strictMode", "false", "checkbox", null, "strictMode", (a: any) => a),
+    mkOptMeta("Scientific notation", "scientificNotation", "true", "checkbox", null, null, null),
 
     mkOptMeta("Decimal places", "bnDecimalPlaces", 100, "number", "bignumber", "DECIMAL_PLACES", parseInt),
     mkOptMeta("Pow precision", "bnPowPrecision", 100, "number", "bignumber", "POW_PRECISION", parseInt),
@@ -159,7 +160,7 @@ ${options.showInput ? `
     <div style="text-align: center">
         Output:<br><div style="font-size: 13px; translate: 0 -3px">(in ${r.time.toFixed(3)}ms)</div>
     </div>
-    <code style="max-width: calc(100% - 100px)">${r.output.map(i => typeof i === "string" ? i : ("toFixed" in i ? i.toFixed() : i.toString())).join(" ")}</code>
+    <code style="max-width: calc(100% - 100px)">${r.output.map(i => typeof i === "string" ? i : ("toFixed" in i && !options.scientificNotation ? i.toFixed() : i.toString())).join(" ")}</code>
 </div>`;
             results.appendChild(div);
         }
