@@ -44,7 +44,7 @@ function mkOptMeta(label: any, id: any, def: any, input: string, type: any, k: a
 }
 
 const optionsMeta = [
-    mkOptMeta("Package type", "packageType", "decimal", "select", null, null, null, {
+    mkOptMeta("Process type", "packageType", "decimal", "select", null, null, null, {
         Decimal: "decimal",
         Number: "bignumber",
         Fraction: "fraction"
