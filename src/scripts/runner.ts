@@ -377,7 +377,6 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 }
                 newExp.push(exp);
             }
-            console.log(newExp);
         }
         if (expression[0].type === "operator" && expression[0].value === "-") {
             expression.splice(0, 0, {

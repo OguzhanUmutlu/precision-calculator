@@ -2,6 +2,22 @@
 
 Precision calculator on web
 
+# Examples
+
+## Pi Approximation
+
+Precision: 500
+
+```
+pi = 3
+
+repeat 6 times {
+  pi += sin(pi)
+}
+
+pi
+```
+
 # Usage
 
 You can start using it on https://oguzhanumutlu.github.io/precision-calculator/
