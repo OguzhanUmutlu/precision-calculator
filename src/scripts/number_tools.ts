@@ -39,6 +39,10 @@ const decimalPi = new Decimal(PI);
 const decimalE = new Decimal(E);
 const decimalInf = new Decimal("Infinity");
 
+const bigFac: Record<number, BigNumber> = {};
+const fracFac: Record<number, Fraction> = {};
+const decFac: Record<number, Decimal> = {};
+
 export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
     bignumber: {
         basic(a, op, b) {
@@ -77,6 +81,18 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
             "∞": bigInf
         },
         functions: {
+            fac: {
+                arguments: 1, run(input) {
+                    const num = parseInt(input[0].toFixed());
+                    if (bigFac[num]) return bigFac[num];
+                    let product = new BigNumber(1);
+                    for (let i = 2; i <= num; i++) {
+                        product = product.times(i);
+                    }
+                    bigFac[num] = product;
+                    return product;
+                }
+            },
             abs: {
                 arguments: 1, run(input) {
                     return input[0].abs();
@@ -180,6 +196,18 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
             "e": fractionE
         },
         functions: {
+            fac: {
+                arguments: 1, run(input) {
+                    const num = parseInt(input[0].toString());
+                    if (fracFac[num]) return fracFac[num];
+                    let product = new Fraction(1);
+                    for (let i = 2; i <= num; i++) {
+                        product = product.mul(i);
+                    }
+                    fracFac[num] = product;
+                    return product;
+                }
+            },
             gcd: {
                 arguments: 2, run(input) {
                     return input[0].gcd(input[1]);
@@ -249,6 +277,18 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
             "∞": decimalInf
         },
         functions: {
+            fac: {
+                arguments: 1, run(input) {
+                    const num = parseInt(input[0].toFixed());
+                    if (decFac[num]) return decFac[num];
+                    let product = new Decimal(1);
+                    for (let i = 2; i <= num; i++) {
+                        product = product.times(i);
+                    }
+                    decFac[num] = product;
+                    return product;
+                }
+            },
             abs: {
                 arguments: 1, run(input) {
                     return input[0].abs();
