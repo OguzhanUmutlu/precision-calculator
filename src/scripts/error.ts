@@ -36,18 +36,18 @@ export function throwError(code: string, index: number, error: string, length = 
                 "color: " + ERR_RED,
                 "color: " + ERR_BLUE
             );
-            res.push(`<span style="color: ${ERR_RED}">>&nbsp;</span>` +
-                `<span style="color: ${ERR_BLUE}">${l + 1}&nbsp;|&nbsp;</span>` +
-                `<span style="color: ${ERR_BLUE}">${a}</span>` +
-                `<span style="color: ${ERR_RED}">${b}</span>` +
-                `<span style="color: ${ERR_BLUE}">${c}</span>`);
+            res.push([`<span style="color: ${ERR_RED}">>&nbsp;</span>` +
+            `<span style="color: ${ERR_BLUE}">${l + 1}&nbsp;|&nbsp;</span>` +
+            `<span style="color: ${ERR_BLUE}">`, [a], `</span>` +
+            `<span style="color: ${ERR_RED}">`, [b], `</span>` +
+            `<span style="color: ${ERR_BLUE}">`, [c], `</span>`]);
             //console.log("%c" + " ".repeat(key + l.toString().length + 4) + "^".repeat(length), "color: " + red);
         } else {
             console.log("%c  " + (l + 1) + " | " + lines[l], "color: " + ERR_BLUE);
-            res.push(`&nbsp;&nbsp;<span style="color: ${ERR_BLUE}">${l + 1}&nbsp;|&nbsp;${lines[l]}</span>`);
+            res.push([`<span style="color: ${ERR_BLUE}">&nbsp;&nbsp;${l + 1}&nbsp;|&nbsp;`, [lines[l]], `</span>`]);
         }
     }
-    res.push(``,`<span style="color: ${ERR_RED}">Error: ${error}</span>`);
+    res.push(``, [`<span style="color: ${ERR_RED}">Error: `, [error], `</span>`]);
     console.error(error);
     throw res;
 }

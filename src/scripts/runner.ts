@@ -10,10 +10,10 @@ export type NumberVariable<N> = {
     type: "number", value: N, constant: boolean
 };
 export type BuiltInFunctionVariable<N> = {
-    type: "function", arguments: number, run: MathToolFunction<N>["run"], constant: true
+    type: "function", arguments: number, run: MathToolFunction<N>["run"], constant: boolean, special: true
 };
 export type FunctionVariable = {
-    type: "function", arguments: string[], code: Token[], constant: false
+    type: "function", arguments: string[], code: Token[], constant: boolean, special: false
 };
 export type AnyVariable<N> = NumberVariable<N> | BuiltInFunctionVariable<N> | FunctionVariable;
 export type Variables<N> = Record<string, AnyVariable<N>>;
@@ -78,7 +78,8 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
             const fn = this.tool.functions[name];
             this.variables[name] = {
                 type: "function",
-                constant: true,
+                constant: false,
+                special: true,
                 arguments: fn.arguments,
                 run: fn.run
             };
@@ -152,26 +153,30 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 continue;
             }
             if (statement.type === "set_variable") {
-                const res = this.executeExpression(
-                    statement.name.index + statement.name.value.length,
-                    statement.value, scope
-                );
                 if (this.strictMode && statement.name.value.length !== 1) {
                     throwError(this.code, statement.name.index, "In strict mode, variable names can't have more than one character.", statement.name.value.length);
                 }
                 const existing = this.findVariable(scope, statement.name.value);
                 if (existing && existing.variable.constant) {
-                    throwError(this.code, statement.name.index, "Cannot redeclare constants.");
+                    if (statement.name.value === "π") {
+                        throwError(this.code, statement.name.index, "π ≠ " + statement.valueInput, statement.name.value.length);
+                    }
+                    throwError(this.code, statement.name.index, "Cannot redeclare constants.", statement.name.value.length);
                 }
                 if (existing && existing.scope === scope && statement.constant) {
-                    throwError(this.code, statement.name.index, "Cannot redeclare a variable as a constant.");
+                    throwError(this.code, statement.name.index, "Cannot redeclare a variable as a constant.", statement.name.value.length);
                 }
-                /*this.result.push(lastResult = {
+                const res = this.executeExpression(
+                    statement.name.index + statement.name.value.length,
+                    statement.value, scope
+                );
+                lastResult = {
                     type: "set_variable",
                     input: statement.input,
                     output: [statement.name.value, "is set to", res],
                     time: Date.now() - s
-                });*/
+                };
+                /*this.result.push(lastResult);*/
                 if (existing && !statement.new) {
                     Object.assign(existing.variable, {
                         type: "number", value: res, constant: false
@@ -184,18 +189,23 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 continue;
             }
             if (statement.type === "set_function") {
-                /*this.result.push(lastResult = {
+                lastResult = {
                     type: "set_function",
                     input: statement.input,
                     output: [`${statement.name.value}(${statement.arguments.join(", ")})`, "is set to", statement.valueInput],
                     time: Date.now() - s
-                });*/
+                };
+                /*this.result.push(lastResult);*/
                 const existing = this.findVariable(scope, statement.name.value);
                 if (existing && existing.variable.constant) {
-                    throwError(this.code, statement.name.index, "Cannot redeclare constants.");
+                    throwError(this.code, statement.name.index, "Cannot redeclare constants.", statement.name.value.length);
                 }
                 const fn: FunctionVariable = {
-                    type: "function", arguments: statement.arguments, code: statement.value, constant: false
+                    type: "function",
+                    arguments: statement.arguments,
+                    code: statement.value,
+                    constant: false,
+                    special: false
                 };
                 if (existing) {
                     Object.assign(existing.variable, fn);
@@ -205,12 +215,13 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 continue;
             }
             if (statement.type === "repeat_until") {
-                /*this.result.push(lastResult = {
+                lastResult = {
                     type: "repeat_until",
                     input: statement.input,
                     output: [`a repeat loop will continue until`, statement.valueRequirement],
                     time: Date.now() - s
-                });*/
+                };
+                /*this.result.push(lastResult);*/
 
                 for (; ;) {
                     const req = this.executeExpression(statement.repeatToken.index, statement.requirement, scope);
@@ -223,12 +234,13 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 continue;
             }
             if (statement.type === "loop") {
-                /*this.result.push(lastResult = {
+                lastResult = {
                     type: "loop",
                     input: statement.input,
                     output: ["loop"],
                     time: Date.now() - s
-                });*/
+                };
+                /*this.result.push(lastResult);*/
 
                 for (; ;) {
                     const res = this.compile(statement.scope, scope);
@@ -239,17 +251,18 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 continue;
             }
             if (statement.type === "if") {
-                /*this.result.push(lastResult = {
+                lastResult = {
                     type: "if",
                     input: statement.input,
                     output: [`the code will be executed if`, statement.valueRequirement],
                     time: Date.now() - s
-                });*/
+                };
+                /*this.result.push(lastResult);*/
 
                 const req = this.executeExpression(statement.ifToken.index, statement.requirement, scope);
-                const s = isTrue(req);
-                lastIf = s;
-                if (s) {
+                const st = isTrue(req);
+                lastIf = st;
+                if (st) {
                     const res = this.compile(statement.scope, scope);
                     if (res && res.type === "break") {
                         lastResult = res;
@@ -258,12 +271,13 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 }
             }
             if (statement.type === "repeat_times") {
-                /*this.result.push(lastResult = {
+                lastResult = {
                     type: "repeat_times",
                     input: statement.input,
                     output: [`a repeat loop will continue`, statement.valueAmount, `times`],
                     time: Date.now() - s
-                });*/
+                };
+                /*this.result.push(lastResult);*/
 
                 const r = this.executeExpression(statement.repeatToken.index, statement.amount, scope);
                 const amount = parseFloat("toFixed" in r ? r.toFixed() : r.toString());
@@ -279,12 +293,13 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 continue;
             }
             if (statement.type === "repeat_times_with") {
-                /*this.result.push(lastResult = {
+                lastResult = {
                     type: "repeat_times_with",
                     input: statement.input,
                     output: [`a repeat loop will continue`, statement.valueAmount, `times`],
                     time: Date.now() - s
-                });*/
+                };
+                /*this.result.push(lastResult);*/
 
                 const r = this.executeExpression(statement.repeatToken.index, statement.amount, scope);
                 const amount = parseFloat("toFixed" in r ? r.toFixed() : r.toString());
@@ -303,12 +318,13 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 continue;
             }
             if (statement.type === "else") {
-                /*this.result.push(lastResult = {
+                lastResult = {
                     type: "else",
                     input: statement.input,
                     output: [`the code will be executed if the last if succeeded`],
                     time: Date.now() - s
-                });*/
+                };
+                /*this.result.push(lastResult);*/
                 if (!lastIf) {
                     const res = this.compile(statement.scope, scope);
                     if (res && res.type === "break") {
@@ -318,12 +334,13 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 }
             }
             if (statement.type === "elseif") {
-                /*this.result.push(lastResult = {
+                lastResult = {
                     type: "elseif",
                     input: statement.input,
                     output: [`the code will be executed if the last if succeeded and if`, statement.valueRequirement],
                     time: Date.now() - s
-                });*/
+                };
+                /*this.result.push(lastResult);*/
                 if (!lastIf) {
                     const req = this.executeExpression(statement.ifToken.index, statement.requirement, scope);
                     const s = isTrue(req);
@@ -338,12 +355,13 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 }
             }
             if (statement.type === "print") {
-                this.result.push(lastResult = {
+                lastResult = {
                     type: "print",
                     input: statement.input,
                     output: [statement.text],
                     time: Date.now() - s
-                });
+                };
+                this.result.push(lastResult);
             }
             if (statement.type === "throw") {
                 throwError(this.code, statement.throwToken.index, statement.text, statement.endIndex - statement.throwToken.index);
@@ -380,7 +398,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 newExp.push(exp);
             }
         }
-        if (expression[0].type === "operator" && expression[0].value === "-") {
+        if (expression[0].type === "operator" && (expression[0].value === "-" || expression[0].value === "+")) {
             expression.splice(0, 0, {
                 type: "integer", value: "0", index: expression[0].index
             });
@@ -492,6 +510,8 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
         if (token.opener.value === "{") {
             const last = this.compile(interpret(this.code, token.children), scope);
             if (!last || last.type !== "inline_execution") return new this.class("0");
+            // this prevents printing out stuff when the last expression was an inline expression
+            // this.result.splice(this.result.length - 1, 1);
             return <N>last.output[0];
         }
         return this.executeExpression(token.index, token.children, scope);
@@ -546,7 +566,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
             throwError(this.code, token.name.index, "Cannot use a numeric variable as a function.", token.name.value.length);
             throw "";
         }
-        if (func.variable.constant) {
+        if (func.variable.special) {
             if (func.variable.arguments !== Infinity && processedArgs.length !== func.variable.arguments) {
                 throwError(this.code, token.index, "Expected " + func.variable.arguments + " arguments, got " + processedArgs.length, token.value.length);
             }

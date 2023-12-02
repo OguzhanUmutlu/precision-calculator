@@ -12,6 +12,7 @@ export type SetVariableStatement = {
     name: Token,
     value: Token[],
     input: string,
+    valueInput: string,
     new: boolean,
     constant: boolean
 };
@@ -220,6 +221,7 @@ export function interpret(code: string, tokens: Token[]) {
                                 {type: "integer", index: token.index, value: "1"}
                             ],
                             input: token.value + " = " + token.value + " + 1",
+                            valueInput: code.substring(next1.index, next2.index + next2.value.length),
                             new: false,
                             constant: false
                         });
@@ -249,6 +251,7 @@ export function interpret(code: string, tokens: Token[]) {
                                     closer: {type: "symbol", value: ")", index: token.index}
                                 }
                             ],
+                            valueInput: code.substring(collects[0].index, ls.index + ls.value.length),
                             input: token.value + " = " + token.value + " * (" + code.substring(fs.index, ls.index + ls.value.length) + ")",
                             new: false,
                             constant: false
@@ -281,6 +284,7 @@ export function interpret(code: string, tokens: Token[]) {
                         name: name,
                         value: collects,
                         input: code.substring(token.index, nt.index + nt.value.length),
+                        valueInput: code.substring(collects[0].index, nt.index + nt.value.length),
                         new: next1.type === "word",
                         constant: next1.type === "word" && token.value === "const"
                     });
@@ -539,7 +543,10 @@ export function interpret(code: string, tokens: Token[]) {
                 continue;
             }
         }
-        if (token.type === "call_function" || token.type === "integer" || token.type === "float" || token.type === "word" || token.type === "group") {
+        if (
+            ["call_function", "integer", "float", "word", "group"].includes(token.type) ||
+            (token.type === "operator" && ["+", "-"].includes(token.value))
+        ) {
             const [nI, collects] = findEOL(i, tokens);
             i = nI;
             const nt = tokens[i];
@@ -556,7 +563,8 @@ export function interpret(code: string, tokens: Token[]) {
             continue;
         }
         if (token.type === "operator") {
-            throwError(code, token.index, "Unexpected symbol.");
+            throwError(code, token.index, "Unexpected operator.");
+            throw "";
         }
     }
     return statements;

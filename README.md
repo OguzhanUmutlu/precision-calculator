@@ -1,12 +1,9 @@
 # precision-calculator
 
-Precision calculator on web
+A precision calculator on web that can calculate your mathematical
+expressions in under a few milliseconds with really high precision.
 
-# Examples
-
-## Pi Approximation
-
-Precision: 500
+Here's a code that approximates pi up to 500 digits in just 20ms:
 
 ```
 pi = 3
@@ -170,19 +167,32 @@ if x == 10 {
 }
 ```
 
-# Repeat until statements
-
-A loop will continue until the given expression is equal to 0.
-
-The logic: Check if the requirement is 0, if yes run the scope and start
-from the beginning, unless exit the loop
+# Repeat statements
 
 ```
-x = 0
+# The logic: Check if the requirement is 0, if yes run the scope and start
+# from the beginning, unless exit the loop
 
+x = 0
 repeat until x == 10 {
   x # prints every integer from 0 to 9
-  x = x + 1  # yes i know. x can't be x + 1. this is code. don't sue me.
+  x++
+}
+
+
+# The logic: Repeats N times.
+
+x = 0
+repeat 5 times {
+  x # prints: 0 1 2 3 4
+  x++
+}
+
+# The logic: Repeats N times and assigns the given variable name
+# to every integer from 1 to N and runs the scope everytime.
+# (1 and N included)
+repeat 5 times with i {
+  i # prints: 1 2 3 4 5
 }
 ```
 
@@ -199,7 +209,7 @@ x = 0
 
 loop {
   x # prints every integer from 0 to 9
-  x = x + 1
+  x++
   if x == 10 { break }
 }
 ```

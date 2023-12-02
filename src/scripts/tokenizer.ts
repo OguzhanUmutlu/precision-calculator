@@ -82,6 +82,11 @@ export function tokenize(code: string) {
                         type: "float", index: befBf.index, value: befBf.value + "." + integer,
                     });
                     continue;
+                } else {
+                    tokens.splice(l - 1, 1, {
+                        type: "float", index: bf.index, value: "0." + integer,
+                    });
+                    continue;
                 }
             }
             tokens.push({type: "integer", index: start, value: integer});

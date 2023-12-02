@@ -1,0 +1,7 @@
+pi = 3
+
+repeat 6 times {
+  pi += sin(pi)
+}
+
+pi

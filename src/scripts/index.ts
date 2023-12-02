@@ -113,6 +113,12 @@ function panicTerminate() {
 let isRunning = false;
 let runInterval = -1;
 
+function sanitize(html: string) {
+    const d = document.createElement("div");
+    d.textContent = html;
+    return d.innerHTML;
+}
+
 async function onRun() {
     results.innerHTML = `<div>Loading...&nbsp;<span id="counter"></span>&nbsp;<span class="btn" onclick="panic()">Terminate</span></div>`;
     clearInterval(runInterval);
@@ -167,10 +173,15 @@ ${options.showInput ? `
     } else {
         const div = document.createElement("div");
         div.innerHTML = `
-<table style="margin-right: 30px;width: 100%">
+<table style="margin-right: 30px; width: 100%">
     <tr>
         <td>Error</td>
-        <td><code>${res.response.join("<br>")}</code></td>
+        <td><code>${res.response.map((i: any) => {
+            if (Array.isArray(i)) {
+                return i.map(j => Array.isArray(j) ? sanitize(j[0]) : j).join("");
+            }
+            return i;
+        }).join("<br>")}</code></td>
     </tr>
 </table>`;
         results.appendChild(div);
@@ -264,17 +275,21 @@ for (const meta of optionsMeta) {
     tr2.appendChild(td);
 }
 
+function addTextToTextarea(text: string) {
+    const cursorPosition = textarea.selectionStart;
+    const textBeforeCursor = textarea.value.substring(0, cursorPosition);
+    const textAfterCursor = textarea.value.substring(cursorPosition);
+    textarea.value = textBeforeCursor + text + textAfterCursor;
+    const newPosition = cursorPosition + text.length;
+    textarea.setSelectionRange(newPosition, newPosition);
+    textarea.focus();
+}
+
 function addShortcut(html: string, copy = html) {
     const el = document.createElement("div");
     el.innerHTML = html;
     el.addEventListener("click", () => {
-        const cursorPosition = textarea.selectionStart;
-        const textBeforeCursor = textarea.value.substring(0, cursorPosition);
-        const textAfterCursor = textarea.value.substring(cursorPosition);
-        textarea.value = textBeforeCursor + copy + textAfterCursor;
-        const newPosition = cursorPosition + copy.length;
-        textarea.setSelectionRange(newPosition, newPosition);
-        textarea.focus();
+        addTextToTextarea(copy);
     });
     shortcutsDiv.appendChild(el);
 }
@@ -327,3 +342,10 @@ setInterval(() => {
 });
 
 createWorker();
+
+textarea.addEventListener("keydown", e => {
+    if (e.key === "Tab") {
+        e.preventDefault();
+        addTextToTextarea("    ");
+    }
+})
