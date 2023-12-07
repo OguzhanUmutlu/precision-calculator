@@ -1,14 +1,33 @@
+
+:root {
+    --background-color: #36393F;
+    --code-background: #52565D;
+    --text-color: white;
+    --accent-color: #FF6262; 
+}
+
 * {
-    transition: translate .2s, rotate .2s, scale .1s;
+    transition:  translate .2s, rotate .2s, scale .1s;
 }
 
 body {
     margin: 0;
-    background: #36393F;
+    background: var(--background-color);
     font-size: 20px;
-    font-family: Calibri, serif;
-    color: white;
+    font-family: 'Calibri', sans-serif;
+    color: var(--text-color);
     user-select: none;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: absolute;
+    width: 80%;
+    margin: 10% 10% 0;
+    height: max-content;
+    padding-bottom: 10%;
 }
 
 .code-part {
@@ -19,38 +38,28 @@ body {
     margin-bottom: 20px;
 }
 
-.results > div {
-    border-radius: 5px;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    width: calc(100% - 20px);
-    max-width: calc(100% - 20px);
-    overflow: hidden;
-    height: max-content;
-    padding: 10px;
-    background: #52565d;
-}
-
 .results {
     width: 100%;
     height: max-content;
 }
 
-.container {
-    position: absolute;
-    width: 80%;
-    margin-left: 10%;
-    margin-right: 10%;
-    margin-top: 10%;
+.results > div {
+    border-radius: 8px; 
+    margin: 10px 0;
+    width: calc(100% - 20px);
+    max-width: calc(100% - 20px);
+    overflow: hidden;
     height: max-content;
-    padding-bottom: 10%;
+    padding: 15px;
+    background: var(--code-background);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
 }
 
 textarea {
-    color: white;
+    color: var(--text-color);
     font-size: 20px;
-    font-family: Calibri, serif;
-    background: #52565d;
+    font-family: 'Calibri', sans-serif;
+    background: var(--code-background);
     resize: none;
     outline: none;
     width: 100%;
@@ -59,14 +68,16 @@ textarea {
 }
 
 .compute {
-    width: 20px;
-    margin-left: 3px;
+    width: 30px;
+    margin-left: 5px;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    background: #52565d;
+    background: var(--code-background);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
 }
 
 table {
@@ -76,7 +87,7 @@ table {
 
 td {
     margin: 0;
-    padding: 2px 0;
+    padding: 8px 12px; 
     border: 1px solid white;
     text-align: center;
 }
@@ -85,18 +96,18 @@ code {
     text-align: left;
     display: block;
     font-size: 14px;
-    padding: 3px;
-    margin-left: 5px;
-    margin-right: 5px;
-    background: #36393F;
+    padding: 10px; 
+    margin: 0 5px;
+    background: var(--background-color);
     word-wrap: anywhere;
     user-select: text;
+    border-radius: 5px; 
 }
 
 .options {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
     font-size: 17px;
 }
 
@@ -106,29 +117,39 @@ code {
 }
 
 input {
-    max-width: 110px;
+    max-width: 120px;
     outline: none;
     border: none;
-    background: #52565d;
-    color: white;
+    background: var(--code-background);
+    color: var(--text-color);
+    padding: 10px;
+    border-radius: 5px;
 }
 
 select {
-    padding: 10px;
+    padding: 12px;
     border-radius: 5px;
     border: none;
     outline: none;
-    background: #52565d;
-    color: white;
+    background: var(--code-background);
+    color: var(--text-color);
 }
 
 .btn {
-    width: max-content;
-    font-family: monospace, serif;
+    padding: 12px 20px;
+    font-family: 'Calibri', sans-serif;
     font-size: 16px;
-    background: red;
-    color: white;
+    background: var(--accent-color);
+    color: var(--text-color);
     cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background 0.3s ease;
+}
+
+.btn:hover {
+    background: #FF4545; 
 }
 
 .shortcuts {
@@ -138,10 +159,13 @@ select {
 
 .shortcuts > div {
     font-size: 14px;
-    padding: 1px;
-    margin: 1px;
-    background: #52565d;
+    padding: 8px;
+    margin: 5px;
+    background: var(--code-background);
     cursor: pointer;
+    border-radius: 5px; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    transition: transform 0.3s ease;
 }
 
 .shortcuts > div:hover {
@@ -155,6 +179,7 @@ select {
     height: 64px;
     background-image: url("../assets/github-mark-white.png");
     background-size: 64px 64px;
+    /* transition: transform 0.3s ease; */
 }
 
 .github-icon:hover {
@@ -166,10 +191,11 @@ select {
 .design-performance {
     position: absolute;
     top: 10px;
-    font-size: 16px;
-    font-family: monospace, serif;
+    font-size: 18px; 
+    font-family: 'Calibri', sans-serif;
     left: 50%;
-    translate: -50%;
+    transform: translateX(-50%);
     cursor: pointer;
     letter-spacing: -1px;
+    color: #FFA07A;
 }

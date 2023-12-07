@@ -1,6 +1,6 @@
 * {
     letter-spacing: -1px;
-    font-family: monospace, serif;
+    font-family: 'Monospace', sans-serif;
 }
 
 body {
@@ -8,6 +8,7 @@ body {
     font-size: 20px;
 }
 
+/* Code Part Styles */
 .code-part {
     width: 100%;
     display: flex;
@@ -16,21 +17,27 @@ body {
     margin-bottom: 20px;
 }
 
+/* Results Styles */
 .results > div {
     overflow: hidden;
     height: max-content;
+    border-radius: 8px; /* Rounded corners */
+    margin: 10px 0;
+    padding: 15px;
+    background: #F5F5F5; /* Light gray background */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
+/* Container Styles */
 .container {
     position: absolute;
     width: 80%;
-    margin-left: 10%;
-    margin-right: 10%;
-    margin-top: 10%;
+    margin: 10% 10% 0;
     height: max-content;
     padding-bottom: 10%;
 }
 
+/* Textarea Styles */
 textarea {
     font-size: 16px;
     resize: none;
@@ -38,62 +45,93 @@ textarea {
     width: 100%;
     overflow-y: auto;
     white-space: nowrap;
+    padding: 10px; /* Increased padding */
+    border: 1px solid #ccc; /* Light border */
+    border-radius: 5px; /* Rounded corners */
 }
 
+/* Compute Styles */
 .compute {
-    width: 20px;
-    margin-left: 3px;
+    width: 30px; /* Slightly larger size */
+    margin-left: 5px;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
+    background: #4CAF50; /* Green color */
+    border-radius: 50%; /* Circular shape */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
+/* Table Styles */
 table {
     border-spacing: 0;
+    max-width: 50%;
 }
 
+/* Table Cell Styles */
 td {
     margin: 0;
-    padding: 5px;
+    padding: 8px; /* Increased padding */
     text-align: center;
 }
 
+/* Code Styles */
 code {
     text-align: left;
     display: block;
     font-size: 14px;
-    padding: 3px;
-    margin-left: 5px;
-    margin-right: 5px;
+    padding: 10px; /* Increased padding */
+    margin: 0 5px;
     word-wrap: anywhere;
+    border: 1px solid #ddd; /* Light border */
+    border-radius: 5px; /* Rounded corners */
+    background-color: #f9f9f9; /* Light gray background */
 }
 
+/* Options Styles */
 .options {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 15px; /* Increased margin */
     font-size: 17px;
 }
 
+/* Options Table Styles */
 .options-table {
     width: 100%;
     max-width: 100%;
 }
 
+/* Input Styles */
 input {
-    max-width: 110px;
+    max-width: 120px; /* Slightly wider input */
+    outline: none;
+    border: none;
+    padding: 10px;
+    border-radius: 5px; /* Rounded corners */
+    border: 1px solid #ddd; /* Light border */
 }
 
+/* Button Styles */
 .btn {
-    width: max-content;
+    padding: 12px 20px; /* Increased padding */
     font-size: 16px;
-    background: red;
+    background: #FF6262; /* Accent color */
     color: white;
     cursor: pointer;
+    border: none;
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: background 0.3s ease;
 }
 
+.btn:hover {
+    background: #FF4545; /* Darker shade on hover */
+}
+
+/* Shortcuts Styles */
 .shortcuts {
     display: flex;
     flex-wrap: wrap;
@@ -102,33 +140,48 @@ input {
 .shortcuts > div {
     font-size: 14px;
     cursor: pointer;
-    margin: 2px;
+    margin: 5px;
+    padding: 8px; /* Increased padding */
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: transform 0.3s ease;
+}
+
+.shortcuts > div:hover {
+    transform: scale(1.05); /* Slight scale on hover */
+}
+
+/* GitHub Icons Section Styles */
+.github-icons {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .github-icon {
-    position: absolute;
-    cursor: pointer;
-    width: 64px;
-    height: 64px;
+    width: 50px; /* Smaller icon size */
+    height: 50px; /* Smaller icon size */
     background-image: url("../assets/github-mark.png");
-    background-size: 64px 64px;
-    rotate: 0deg !important;
-    translate: 0 0 !important;
+    background-size: cover;
+    margin-bottom: 10px;
+    opacity: 0.7; /* Slightly transparent */
+    transition: opacity 0.3s ease;
 }
 
+.github-icon:hover {
+    opacity: 1; /* Fully visible on hover */
+}
+
+/* Design Performance Styles */
 .design-performance {
     position: absolute;
     top: 10px;
-    font-size: 16px;
+    font-size: 18px; /* Increased font size */
     left: 50%;
-    translate: -50%;
+    transform: translateX(-50%);
     cursor: pointer;
-}
-
-.github-icon {
-    opacity: 0;
-}
-
-.github-icons > .github-icon:first-child {
-    opacity: 1;
+    color: #FFA07A; /* Lighter orange color */
 }
