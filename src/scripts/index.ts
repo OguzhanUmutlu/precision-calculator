@@ -62,7 +62,8 @@ const optionsMeta = [
     mkOptMeta("Exp positive", "decExpPos", 21, "number", "decimal", "toExpPos", parseInt),
     //mkOptMeta("Min E", "decMinE", -9000000000000000, "number", "decimal", "minE", parseInt),
     //mkOptMeta("Max E", "decMaxE", 9000000000000000, "number", "decimal", "maxE", parseInt),
-    mkOptMeta("Crypto", "decCrypto", "false", "checkbox", "decimal", "crypto", (a: any) => a)
+    mkOptMeta("Crypto", "decCrypto", "false", "checkbox", "decimal", "crypto", (a: any) => a),
+    mkOptMeta("As fraction", "toFraction", 21, "checkbox", "fraction", "", (a: any) => a)
 ];
 
 const options: Record<string, string> = {};
@@ -166,7 +167,7 @@ ${options.showInput ? `
     <div style="text-align: center">
         Output:<br><div style="font-size: 13px; translate: 0 -3px">(in ${r.time.toFixed(3)}ms)</div>
     </div>
-    <code style="max-width: calc(100% - 100px)">${r.output.map(i => typeof i === "string" ? i : ("toFixed" in i && !options.scientificNotation ? i.toFixed() : i.toString())).join(" ")}</code>
+    <code style="max-width: calc(100% - 100px)">${r.output.map(i => typeof i === "string" ? i : ("toFixed" in i && !options.scientificNotation ? i.toFixed() : (options.toFraction && i instanceof Fraction ? i.toFraction() : i.toString()))).join(" ")}</code>
 </div>`;
             results.appendChild(div);
         }

@@ -69,7 +69,7 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
                     return a.isLessThanOrEqualTo(b) ? bigOne : bigZero;
                 case "==":
                     return a.isEqualTo(b) ? bigOne : bigZero;
-                case "!=":
+                case "~=":
                     return a.isEqualTo(b) ? bigZero : bigOne;
                 default:
                     throw new Error("Assumption failed.");
@@ -185,7 +185,7 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
                     return a.compare(b) < 1 ? fractionOne : fractionZero;
                 case "==":
                     return a.equals(b) ? fractionOne : fractionZero;
-                case "!=":
+                case "~=":
                     return a.equals(b) ? fractionZero : fractionOne;
                 default:
                     throw new Error("Assumption failed.");
@@ -265,7 +265,7 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
                     return a.lessThanOrEqualTo(b) ? decimalOne : decimalZero;
                 case "==":
                     return a.equals(b) ? decimalOne : decimalZero;
-                case "!=":
+                case "~=":
                     return a.equals(b) ? decimalZero : decimalOne;
                 default:
                     throw new Error("Assumption failed.");

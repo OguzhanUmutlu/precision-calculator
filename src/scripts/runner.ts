@@ -50,6 +50,10 @@ const operators: Record<string, { p: number, a: "right" | "left" }> = {
         p: 2,
         a: "left",
     },
+    "~": {
+        p: 2,
+        a: "left",
+    },
 };
 
 function isTrue(req: MathToolNumber<MathToolType>) {
@@ -403,13 +407,19 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 type: "integer", value: "0", index: expression[0].index
             });
         }
+        if (expression.length === 2 && expression[1].type === "operator" && expression[1].value === "!") {
+            return this.tool.functions.fac.run([<N>this.expr(expression[0], scope)]);
+        }
         if (expression.length === 1) return <N>this.expr(expression[0], scope);
         for (let i = 1; i < expression.length; i += 2) {
             const op = expression[i];
             const token = expression[i + 1];
             if (op.type !== "operator") {
-                throwError(this.code, op.index, "Expected an operator.", op.value.length);
-                break;
+                expression.splice(i, 0, {type: "operator", index: op.index, value: "*"});
+                i -= 2;
+                continue;
+                //throwError(this.code, op.index, "Expected an operator.", op.value.length);
+                //break;
             }
             if (!token) {
                 throwError(this.code, op.index, "Expected an expression after the operator.", op.value.length);
@@ -549,7 +559,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
             }
             processedArgs[i] = {
                 type: "number",
-                value: this.executeExpression(arg[0].index, arg, scope),
+                value: <N>this.executeExpression(arg[0].index, arg, scope),
                 constant: false
             };
         }

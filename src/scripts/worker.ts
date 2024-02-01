@@ -18,6 +18,7 @@ onmessage = ({data}) => {
                 continue;
             }
             const cl: any = (<any>{bignumber: BigNumber, fraction: Fraction, decimal: Decimal})[opt.type];
+            if (!("set" in cl)) continue;
             cl.set(opt.data);
         }
         return;

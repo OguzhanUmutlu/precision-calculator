@@ -20,9 +20,9 @@ export type Token =
     | CallFunctionToken;
 
 const Operators = [
-    "+", "-", "*", "/", "%", "^", ">", "<", "!"
+    "+", "-", "*", "/", "%", "^", ">", "<", "~", "!"
 ];
-const Operators2 = [">=", "<=", "==", "!="];
+const Operators2 = [">=", "<=", "==", "~="];
 const Symbols = [
     "+", "-", "*", "/", "^", "=",
     "(", ")", "[", "]", "{", "}",
@@ -54,7 +54,21 @@ export function tokenize(code: string) {
         }
         if (f) continue;
         if (Operators.includes(char)) {
-            tokens.push({type: "operator", index: i, value: char});
+            let last;
+            const token: OperatorToken = {type: "operator", index: i, value: char};
+            if (char === "!" && (last = tokens.splice(-1, 1))) {
+                const par: SymbolToken = {type: "symbol", value: "(", index: i};
+                tokens.push({
+                    type: "group",
+                    index: i,
+                    children: [last[0], token],
+                    value: last[0].value + "!",
+                    opener: par,
+                    closer: par
+                });
+                continue;
+            }
+            tokens.push(token);
             continue;
         }
         if (Symbols.includes(char)) {
