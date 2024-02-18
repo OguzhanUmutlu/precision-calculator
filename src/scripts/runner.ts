@@ -5,6 +5,7 @@ import {Decimal} from "decimal.js";
 import {CallFunctionToken, FloatToken, GroupToken, IntegerToken, Token, WordToken} from "./tokenizer";
 import {throwError} from "./error";
 import {MathTool, MathToolFunction, MathToolNumber, MathTools, MathToolType} from "./number_tools";
+import Complex from "complex.js";
 
 export type NumberVariable<N> = {
     type: "number", value: N, constant: boolean
@@ -75,7 +76,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
         this.code = code;
         this.strictMode = strictMode;
         this.tool = <MathTool<N>>MathTools[type];
-        this.class = {bignumber: BigNumber, fraction: Fraction, decimal: Decimal}[type];
+        this.class = {bignumber: BigNumber, fraction: Fraction, decimal: Decimal, complex: Complex}[type];
         this.type = type;
 
         for (const name in this.tool.functions) {
@@ -108,7 +109,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
         }
     };
 
-    compile(statements: Statement[], parent: Scope<N>): CompileResult<N> | null {
+    async compile(statements: Statement[], parent: Scope<N>): Promise<CompileResult<N> | null> {
         const scope: Scope<N> = {
             parent, variables: {}
         };
@@ -128,7 +129,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 break;
             }
             if (statement.type === "return") {
-                const res = this.executeExpression(
+                const res = await this.executeExpression(
                     statement.value[0].index,
                     statement.value, scope
                 );
@@ -141,7 +142,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 break;
             }
             if (statement.type === "inline_execution") {
-                const res = this.executeExpression(
+                const res = await this.executeExpression(
                     statement.value[0].index,
                     statement.value, scope
                 );
@@ -170,7 +171,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 if (existing && existing.scope === scope && statement.constant) {
                     throwError(this.code, statement.name.index, "Cannot redeclare a variable as a constant.", statement.name.value.length);
                 }
-                const res = this.executeExpression(
+                const res = await this.executeExpression(
                     statement.name.index + statement.name.value.length,
                     statement.value, scope
                 );
@@ -228,9 +229,9 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 /*this.result.push(lastResult);*/
 
                 for (; ;) {
-                    const req = this.executeExpression(statement.repeatToken.index, statement.requirement, scope);
+                    const req = await this.executeExpression(statement.repeatToken.index, statement.requirement, scope);
                     if (isTrue(req)) break;
-                    const res = this.compile(statement.scope, scope);
+                    const res = await this.compile(statement.scope, scope);
                     if (res && res.type === "break") {
                         break;
                     }
@@ -247,7 +248,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 /*this.result.push(lastResult);*/
 
                 for (; ;) {
-                    const res = this.compile(statement.scope, scope);
+                    const res = await this.compile(statement.scope, scope);
                     if (res && res.type === "break") {
                         break;
                     }
@@ -263,11 +264,11 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 };
                 /*this.result.push(lastResult);*/
 
-                const req = this.executeExpression(statement.ifToken.index, statement.requirement, scope);
+                const req = await this.executeExpression(statement.ifToken.index, statement.requirement, scope);
                 const st = isTrue(req);
                 lastIf = st;
                 if (st) {
-                    const res = this.compile(statement.scope, scope);
+                    const res = await this.compile(statement.scope, scope);
                     if (res && res.type === "break") {
                         lastResult = res;
                         break;
@@ -283,11 +284,11 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 };
                 /*this.result.push(lastResult);*/
 
-                const r = this.executeExpression(statement.repeatToken.index, statement.amount, scope);
+                const r = await this.executeExpression(statement.repeatToken.index, statement.amount, scope);
                 const amount = parseFloat("toFixed" in r ? r.toFixed() : r.toString());
                 let breaks = false;
                 for (let i = 0; i < amount; i++) {
-                    const res = this.compile(statement.scope, scope);
+                    const res = await this.compile(statement.scope, scope);
                     if (res && res.type === "break") {
                         breaks = true;
                         break;
@@ -305,13 +306,19 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 };
                 /*this.result.push(lastResult);*/
 
-                const r = this.executeExpression(statement.repeatToken.index, statement.amount, scope);
+                const r = await this.executeExpression(statement.repeatToken.index, statement.amount, scope);
                 const amount = parseFloat("toFixed" in r ? r.toFixed() : r.toString());
                 let breaks = false;
                 for (let i = 0; i < amount; i++) {
-                    const res = this.compile(statement.scope, {
+                    const res = await this.compile(statement.scope, {
                         parent: scope,
-                        variables: {i: {type: "number", value: new this.class(i + 1), constant: true}}
+                        variables: {
+                            [statement.variable]: {
+                                type: "number",
+                                value: new this.class(i + 1),
+                                constant: true
+                            }
+                        }
                     });
                     if (res && res.type === "break") {
                         breaks = true;
@@ -330,7 +337,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 };
                 /*this.result.push(lastResult);*/
                 if (!lastIf) {
-                    const res = this.compile(statement.scope, scope);
+                    const res = await this.compile(statement.scope, scope);
                     if (res && res.type === "break") {
                         lastResult = res;
                         break;
@@ -346,11 +353,11 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 };
                 /*this.result.push(lastResult);*/
                 if (!lastIf) {
-                    const req = this.executeExpression(statement.ifToken.index, statement.requirement, scope);
+                    const req = await this.executeExpression(statement.ifToken.index, statement.requirement, scope);
                     const s = isTrue(req);
                     lastIf = s;
                     if (s) {
-                        const res = this.compile(statement.scope, scope);
+                        const res = await this.compile(statement.scope, scope);
                         if (res && res.type === "break") {
                             lastResult = res;
                             break;
@@ -374,7 +381,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
         return lastResult;
     };
 
-    executeExpression(index: number, expression: Token[], scope: Scope<N>) {
+    async executeExpression(index: number, expression: Token[], scope: Scope<N>) {
         if (expression.length === 0) throwError(this.code, index, "Empty expression.", 2);
         expression = expression.filter(i => i.value !== "\n");
         if (this.strictMode) {
@@ -408,7 +415,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
             });
         }
         if (expression.length === 2 && expression[1].type === "operator" && expression[1].value === "!") {
-            return this.tool.functions.fac.run([<N>this.expr(expression[0], scope)]);
+            return this.tool.functions.fac.run([<N>(await this.expr(expression[0], scope))], this);
         }
         if (expression.length === 1) return <N>this.expr(expression[0], scope);
         for (let i = 1; i < expression.length; i += 2) {
@@ -429,7 +436,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 break;
             }
         }
-        const sy = this.makeShun(expression.map(i => this.expr(i, scope)));
+        const sy = this.makeShun(await Promise.all(expression.map(i => this.expr(i, scope))));
         return this.evaluateSY(sy);
     };
 
@@ -481,7 +488,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
         return <N>stack.pop();
     };
 
-    expr(token: Token, scope: Scope<N>): N | string {
+    expr(token: Token, scope: Scope<N>): N | Promise<N> | string {
         switch (token.type) {
             case "symbol":
             case "operator":
@@ -494,7 +501,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
             case "group":
                 return this.exprGroup(token, scope);
             case "call_function":
-                return <N>this.exprCallFunction(token, scope);
+                return this.exprCallFunction(token, scope);
         }
     };
 
@@ -516,9 +523,9 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
         return vr.variable.value;
     };
 
-    exprGroup(token: GroupToken, scope: Scope<N>): N {
+    async exprGroup(token: GroupToken, scope: Scope<N>): Promise<N> {
         if (token.opener.value === "{") {
-            const last = this.compile(interpret(this.code, token.children), scope);
+            const last = await this.compile(interpret(this.code, token.children), scope);
             if (!last || last.type !== "inline_execution") return new this.class("0");
             // this prevents printing out stuff when the last expression was an inline expression
             // this.result.splice(this.result.length - 1, 1);
@@ -527,7 +534,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
         return this.executeExpression(token.index, token.children, scope);
     };
 
-    exprCallFunction(token: CallFunctionToken, scope: Scope<N>) {
+    async exprCallFunction(token: CallFunctionToken, scope: Scope<N>) {
         const args: Token[][] = [[]];
         let j = 0;
         for (let i = 0; i < token.arguments.children.length; i++) {
@@ -559,7 +566,7 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
             }
             processedArgs[i] = {
                 type: "number",
-                value: <N>this.executeExpression(arg[0].index, arg, scope),
+                value: <N>(await this.executeExpression(arg[0].index, arg, scope)),
                 constant: false
             };
         }
@@ -581,14 +588,15 @@ export class Runner<T extends MathToolType = MathToolType, N extends MathToolNum
                 throwError(this.code, token.index, "Expected " + func.variable.arguments + " arguments, got " + processedArgs.length, token.value.length);
             }
             const bArgs: N[] = [];
-            for (const a of processedArgs) {
+            for (let i = 0; i < processedArgs.length; i++) {
+                const a = processedArgs[i];
                 if (a.type !== "number") {
                     throwError(this.code, token.name.index, "Expected the number arguments for the built-in function: " + name, token.name.value.length);
                     throw "";
                 }
-                bArgs.push(a.value);
+                bArgs.push(a.type === "number" ? a.value : <any>a); // might allow functions as arguments for built-in functions in the future
             }
-            return func.variable.run(bArgs);
+            return await func.variable.run(bArgs, this);
         }
         if (func.variable.arguments.length !== processedArgs.length) {
             throwError(this.code, token.index, "Expected " + func.variable.arguments.length + " arguments, got " + processedArgs.length, token.value.length);

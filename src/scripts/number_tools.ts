@@ -3,21 +3,27 @@ import {BigNumber} from "bignumber.js";
 import {Decimal} from "decimal.js";
 import {PI} from "./symbols/pi";
 import {E} from "./symbols/e";
+import {getInput} from "./worker";
+import {Runner} from "./runner";
+import {CallFunctionToken} from "./tokenizer";
+import Complex from "complex.js";
 
 export type AnyMathToolNumber = BigNumber | Fraction | Decimal;
-export type MathToolType = "bignumber" | "fraction" | "decimal";
+export type MathToolType = "bignumber" | "fraction" | "decimal" | "complex";
 export type BasicOperators = string | "+" | "-" | "*" | "/" | "%" | "^" | "<" | ">" | "<=" | ">=";
-export type MathToolNumber<T> = T extends "bignumber" ? BigNumber : (T extends "fraction" ? Fraction : Decimal);
+export type MathToolNumber<T> = T extends "bignumber" ? BigNumber
+    : (T extends "fraction" ? Fraction
+        : (T extends "decimal" ? Decimal : Complex));
 export type MathToolFunction<T> = {
     arguments: number,
-    run(input: T[]): T;
+    argumentData?: ("function" | "number")[],
+    run(input: (T | CallFunctionToken)[], runner: Runner): T | Promise<T>;
 };
 export type MathTool<T> = {
     basic(a: T, op: BasicOperators, b: T): T;
     constants: Record<string, T>
     functions: Record<string, MathToolFunction<T>>
 };
-
 
 const bigZero = new BigNumber("0");
 const bigOne = new BigNumber("1");
@@ -39,9 +45,31 @@ const decimalPi = new Decimal(PI);
 const decimalE = new Decimal(E);
 const decimalInf = new Decimal("Infinity");
 
+const complexThree = new Complex(3);
+const complexOneThird = Complex.ONE.div(complexThree);
+const complexI = new Complex(0, 1);
+const complexPi = new Complex(PI);
+const complexE = new Complex(E);
+const complexInf = new Complex(Infinity);
+const complexLog10 = new Complex(10).log();
+
 const bigFac: Record<number, BigNumber> = {};
 const fracFac: Record<number, Fraction> = {};
 const decFac: Record<number, Decimal> = {};
+const comFac: Record<number, Complex> = {};
+
+function complexMod(a: Complex, b: Complex) {
+    // z mod w = z - w * floor(z / w)
+    return a.sub(b.mul(a.div(b).floor(0)));
+}
+
+function fnMacro(fn: string, arg = 1) {
+    return {
+        arguments: arg, run(input: any) {
+            return input[0][fn](...input.slice(1));
+        }
+    };
+}
 
 export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
     bignumber: {
@@ -81,70 +109,63 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
             "∞": bigInf
         },
         functions: {
+            input: {
+                arguments: 0, async run() {
+                    return new BigNumber(await getInput());
+                }
+            },
+            mod: fnMacro("mod", 2),
             fac: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [BigNumber]) {
                     const num = parseInt(input[0].toFixed());
                     if (bigFac[num]) return bigFac[num];
                     let product = new BigNumber(1);
                     for (let i = 2; i <= num; i++) {
-                        product = product.times(i);
+                        bigFac[i] = product = product.times(i);
                     }
-                    bigFac[num] = product;
                     return product;
                 }
             },
-            abs: {
-                arguments: 1, run(input) {
-                    return input[0].abs();
-                }
-            },
-            round: {
-                arguments: 1, run(input) {
-                    return input[0].integerValue();
-                }
-            },
+            abs: fnMacro("abs"),
+            round: fnMacro("integerValue"),
             ceil: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [BigNumber]) {
                     return input[0].integerValue(BigNumber.ROUND_CEIL);
                 }
             },
             floor: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [BigNumber]) {
                     return input[0].integerValue(BigNumber.ROUND_FLOOR);
                 }
             },
             isFinite: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [BigNumber]) {
                     return input[0].isFinite() ? bigOne : bigZero;
                 }
             },
             isNaN: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [BigNumber]) {
                     return input[0].isNaN() ? bigOne : bigZero;
                 }
             },
             sign: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [BigNumber]) {
                     return input[0].isPositive() ? bigOne : bigNegativeOne;
                 }
             },
-            sqrt: {
-                arguments: 1, run(input) {
-                    return input[0].sqrt();
-                }
-            },
+            sqrt: fnMacro("sqrt"),
             cbrt: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [BigNumber]) {
                     return input[0].pow(bigOneThird);
                 }
             },
             min: {
-                arguments: Infinity, run(input) {
+                arguments: Infinity, run(input: [BigNumber]) {
                     return BigNumber.min(...input);
                 }
             },
             max: {
-                arguments: Infinity, run(input) {
+                arguments: Infinity, run(input: [BigNumber]) {
                     return BigNumber.max(...input);
                 }
             },
@@ -154,7 +175,7 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
                 }
             },
             sum: {
-                arguments: Infinity, run(input) {
+                arguments: Infinity, run(input: [BigNumber]) {
                     return BigNumber.sum(...input);
                 }
             }
@@ -196,48 +217,29 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
             "e": fractionE
         },
         functions: {
+            input: {
+                arguments: 0, async run() {
+                    return new Fraction(await getInput());
+                }
+            },
+            mod: fnMacro("mod", 2),
             fac: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [Fraction]) {
                     const num = parseInt(input[0].toString());
                     if (fracFac[num]) return fracFac[num];
                     let product = new Fraction(1);
                     for (let i = 2; i <= num; i++) {
-                        product = product.mul(i);
+                        fracFac[i] = product = product.mul(i);
                     }
-                    fracFac[num] = product;
                     return product;
                 }
             },
-            gcd: {
-                arguments: 2, run(input) {
-                    return input[0].gcd(input[1]);
-                }
-            },
-            lcm: {
-                arguments: 2, run(input) {
-                    return input[0].lcm(input[1]);
-                }
-            },
-            ceil: {
-                arguments: 1, run(input) {
-                    return input[0].ceil();
-                }
-            },
-            floor: {
-                arguments: 1, run(input) {
-                    return input[0].floor();
-                }
-            },
-            round: {
-                arguments: 1, run(input) {
-                    return input[0].round();
-                }
-            },
-            inverse: {
-                arguments: 1, run(input) {
-                    return input[0].inverse();
-                }
-            }
+            gcd: fnMacro("gcd", 2),
+            lcm: fnMacro("lcm", 2),
+            ceil: fnMacro("ceil"),
+            floor: fnMacro("floor"),
+            round: fnMacro("round"),
+            inverse: fnMacro("inverse")
         }
     },
     decimal: {
@@ -277,85 +279,63 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
             "∞": decimalInf
         },
         functions: {
+            input: {
+                arguments: 0, async run() {
+                    return new Decimal(await getInput());
+                }
+            },
+            mod: fnMacro("mod", 2),
             fac: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [Decimal]) {
                     const num = parseInt(input[0].toFixed());
                     if (decFac[num]) return decFac[num];
                     let product = new Decimal(1);
                     for (let i = 2; i <= num; i++) {
-                        product = product.times(i);
+                        decFac[i] = product = product.times(i);
                     }
-                    decFac[num] = product;
                     return product;
                 }
             },
-            abs: {
-                arguments: 1, run(input) {
-                    return input[0].abs();
-                }
-            },
-            ceil: {
-                arguments: 1, run(input) {
-                    return input[0].ceil();
-                }
-            },
-            floor: {
-                arguments: 1, run(input) {
-                    return input[0].floor();
-                }
-            },
-            clamp: {
-                arguments: 2, run(input) {
-                    return input[0].clamp(input[1], input[2]);
-                }
-            },
-            sqrt: {
-                arguments: 1, run(input) {
-                    return input[0].sqrt();
-                }
-            },
-            cbrt: {
-                arguments: 1, run(input) {
-                    return input[0].cbrt();
-                }
-            },
+            abs: fnMacro("abs"),
+            ceil: fnMacro("ceil"),
+            floor: fnMacro("floor"),
+            clamp: fnMacro("clamp", 3),
+            sqrt: fnMacro("sqrt"),
+            cbrt: fnMacro("cbrt"),
             isFinite: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [Decimal]) {
                     return input[0].isFinite() ? decimalOne : decimalZero;
                 }
             },
             isNaN: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [Decimal]) {
                     return input[0].isNaN() ? decimalOne : decimalZero;
                 }
             },
             isInt: {
-                arguments: 1, run(input) {
+                arguments: 1, run(input: [Decimal]) {
                     return input[0].isInt() ? decimalOne : decimalZero;
                 }
             },
-            exp: {
-                arguments: 1, run(input) {
-                    return input[0].exp();
-                }
-            },
-            ln: {
-                arguments: 1, run(input) {
-                    return input[0].ln();
+            exp: fnMacro("exp"),
+            ln: fnMacro("ln"),
+            log: {
+                arguments: 1, run(input: [Decimal]) {
+                    return input[0].log(10);
                 }
             },
             hypot: {
-                arguments: Infinity, run(input) {
+                arguments: Infinity, run(input: [Decimal]) {
                     return Decimal.hypot(...input);
                 }
             },
             max: {
-                arguments: Infinity, run(input) {
+                arguments: Infinity, run(input: [Decimal]) {
                     return Decimal.max(...input);
                 }
             },
             min: {
-                arguments: Infinity, run(input) {
+                arguments: Infinity, run(input: [Decimal]) {
                     return Decimal.min(...input);
                 }
             },
@@ -364,66 +344,157 @@ export const MathTools: { [T in MathToolType]: MathTool<MathToolNumber<T>> } = {
                     return Decimal.random();
                 }
             },
-            sin: {
-                arguments: 1, run(input) {
-                    return input[0].sin();
-                }
-            },
-            cos: {
-                arguments: 1, run(input) {
-                    return input[0].cos();
-                }
-            },
-            tan: {
-                arguments: 1, run(input) {
-                    return input[0].tan();
-                }
-            },
-            asin: {
-                arguments: 1, run(input) {
-                    return input[0].asin();
-                }
-            },
-            acos: {
-                arguments: 1, run(input) {
-                    return input[0].acos();
-                }
-            },
-            atan: {
-                arguments: 1, run(input) {
-                    return input[0].atan();
-                }
-            },
-            sinh: {
-                arguments: 1, run(input) {
-                    return input[0].sinh();
-                }
-            },
-            cosh: {
-                arguments: 1, run(input) {
-                    return input[0].cosh();
-                }
-            },
-            tanh: {
-                arguments: 1, run(input) {
-                    return input[0].tanh();
-                }
-            },
-            asinh: {
-                arguments: 1, run(input) {
-                    return input[0].asinh();
-                }
-            },
-            acosh: {
-                arguments: 1, run(input) {
-                    return input[0].acosh();
-                }
-            },
-            atanh: {
-                arguments: 1, run(input) {
-                    return input[0].atanh();
-                }
-            }
+            sin: fnMacro("sin"),
+            cos: fnMacro("cos"),
+            tan: fnMacro("tan"),
+            asin: fnMacro("asin"),
+            acos: fnMacro("acos"),
+            atan: fnMacro("atan"),
+            sinh: fnMacro("sinh"),
+            cosh: fnMacro("cosh"),
+            tanh: fnMacro("tanh"),
+            asinh: fnMacro("asinh"),
+            acosh: fnMacro("acosh"),
+            atanh: fnMacro("atanh")
         }
     },
+    complex: {
+        basic(a, op, b) {
+            let _a, _b;
+            switch (op) {
+                case "+":
+                    return a.add(b);
+                case "-":
+                    return a.sub(b);
+                case "*":
+                    return a.mul(b);
+                case "/":
+                    return a.div(b);
+                case "%":
+                    return complexMod(a, b);
+                case "^":
+                    return a.pow(b);
+                case ">":
+                    _a = a.abs();
+                    _b = b.abs();
+                    return _a > _b ? Complex.ONE : Complex.ZERO;
+                case "<":
+                    _a = a.abs();
+                    _b = b.abs();
+                    return _a < _b ? Complex.ONE : Complex.ZERO;
+                case ">=":
+                    _a = a.abs();
+                    _b = b.abs();
+                    return _a >= _b ? Complex.ONE : Complex.ZERO;
+                case "<=":
+                    _a = a.abs();
+                    _b = b.abs();
+                    return _a <= _b ? Complex.ONE : Complex.ZERO;
+                case "==":
+                    return a.equals(b) ? Complex.ONE : Complex.ZERO;
+                case "~=":
+                    return a.equals(b) ? Complex.ZERO : Complex.ONE;
+                default:
+                    throw new Error("Assumption failed.");
+            }
+        },
+        constants: {
+            "π": Complex.PI,
+            "e": Complex.E,
+            "∞": Complex.INFINITY,
+            "i": Complex.I
+        },
+        functions: {
+            input: {
+                arguments: 0, async run() {
+                    return new Complex(await getInput());
+                }
+            },
+            mod: {
+                arguments: 2, run(input: [Complex, Complex]) {
+                    return complexMod(input[0], input[1]);
+                }
+            },
+            fac: {
+                arguments: 1, run(input: [Complex]) {
+                    const num = parseInt(input[0].toString());
+                    if (comFac[num]) return comFac[num];
+                    let product = Complex.ONE;
+                    for (let i = 2; i <= num; i++) {
+                        comFac[i] = product = product.mul(i);
+                    }
+                    return product;
+                }
+            },
+            conjugate: fnMacro("conjugate"),
+            Re: {
+                arguments: 1, run(input: [Complex]) {
+                    return new Complex(input[0].re);
+                }
+            },
+            Im: {
+                arguments: 1, run(input: [Complex]) {
+                    return new Complex(input[0].im);
+                }
+            },
+            abs: {
+                arguments: 1, run(input: [Complex]) {
+                    return new Complex(input[0].abs());
+                }
+            },
+            arg: {
+                arguments: 1, run(input: [Complex]) {
+                    return new Complex(input[0].arg());
+                }
+            },
+            floor: {
+                arguments: 1, run(input: [Complex]) {
+                    return input[0].floor(0);
+                }
+            },
+            round: {
+                arguments: 1, run(input: [Complex]) {
+                    return input[0].round(0);
+                }
+            },
+            ceil: {
+                arguments: 1, run(input: [Complex]) {
+                    return input[0].ceil(0);
+                }
+            },
+            sqrt: fnMacro("sqrt"),
+            cbrt: {
+                arguments: 1, run(input: [Complex]) {
+                    return input[0].pow(complexOneThird);
+                }
+            },
+            exp: fnMacro("exp"),
+            inverse: fnMacro("inverse"),
+            ln: fnMacro("log"),
+            log: {
+                arguments: 1, run(input: [Complex]) {
+                    return input[0].log().div(complexLog10);
+                }
+            },
+            isFinite: fnMacro("isFinite"),
+            isNaN: fnMacro("isNaN"),
+            isReal: {
+                arguments: 1, run(input: [Complex]) {
+                    return input[0].im === 0 ? Complex.ONE : Complex.ZERO;
+                }
+            },
+            sin: fnMacro("sin"),
+            cos: fnMacro("cos"),
+            tan: fnMacro("tan"),
+            asin: fnMacro("asin"),
+            acos: fnMacro("acos"),
+            atan: fnMacro("atan"),
+            sinh: fnMacro("sinh"),
+            cosh: fnMacro("cosh"),
+            tanh: fnMacro("tanh"),
+            asinh: fnMacro("asinh"),
+            acosh: fnMacro("acosh"),
+            atanh: fnMacro("atanh")
+        }
+    }
 };

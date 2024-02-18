@@ -3,6 +3,7 @@ import {AnyMathToolNumber, MathTools, MathToolType} from "./number_tools";
 import {BigNumber} from "bignumber.js";
 import {default as Fraction} from "fraction.js";
 import {Decimal} from "decimal.js";
+import Complex from "complex.js";
 
 type WorkerResponse<T> = {
     response: CompileResult<T>[], success: true
@@ -47,7 +48,8 @@ const optionsMeta = [
     mkOptMeta("Process type", "packageType", "decimal", "select", null, null, null, {
         Decimal: "decimal",
         Number: "bignumber",
-        Fraction: "fraction"
+        Fraction: "fraction",
+        Complex: "complex"
     }),
     mkOptMeta("Show input", "showInput", "true", "checkbox", null, null, null),
     mkOptMeta("Strict mode", "strictMode", "false", "checkbox", null, "strictMode", (a: any) => a),
@@ -63,7 +65,7 @@ const optionsMeta = [
     //mkOptMeta("Min E", "decMinE", -9000000000000000, "number", "decimal", "minE", parseInt),
     //mkOptMeta("Max E", "decMaxE", 9000000000000000, "number", "decimal", "maxE", parseInt),
     mkOptMeta("Crypto", "decCrypto", "false", "checkbox", "decimal", "crypto", (a: any) => a),
-    mkOptMeta("As fraction", "toFraction", 21, "checkbox", "fraction", "", (a: any) => a)
+    mkOptMeta("As fraction", "toFraction", "true", "checkbox", "fraction", "", (a: any) => a)
 ];
 
 const options: Record<string, string> = {};
@@ -80,6 +82,14 @@ function createWorker() {
         new URL("./worker.ts", import.meta.url), {type: "module"}
     );
     worker.addEventListener("message", ({data}) => {
+        if (data === "input") {
+            const num = prompt("Enter a numeric value:") || "0";
+            worker.postMessage({
+                type: "input",
+                value: num
+            });
+            return;
+        }
         const handler = workerHandlers[data.id];
         if (handler) {
             delete data.id;
@@ -146,7 +156,12 @@ async function onRun() {
             for (let i = 0; i < r.output.length; i++) {
                 const out = r.output[i];
                 if (typeof out === "object") {
-                    const tool: any = {bignumber: BigNumber, fraction: Fraction, decimal: Decimal}[options.packageType];
+                    const tool: any = {
+                        bignumber: BigNumber,
+                        fraction: Fraction,
+                        decimal: Decimal,
+                        complex: Complex
+                    }[options.packageType];
                     const n = new tool("0");
                     for (const j in out) n[j] = (<any>out)[j];
                     r.output[i] = n;
@@ -296,6 +311,22 @@ function addShortcut(html: string, copy = html) {
 }
 
 const fastVariables = ["x", "y", "z", "t", "w", "u"];
+const fastFunctions = ["f", "g", "h"];
+
+function makeXFCounter() {
+    let xSub = 0;
+    let fSub = 0;
+    return {
+        x() {
+            xSub++;
+            return xSub <= fastVariables.length ? fastVariables[xSub - 1] : `x<sub>${xSub}</sub>`;
+        },
+        f() {
+            fSub++;
+            return fSub <= fastFunctions.length ? fastFunctions[fSub - 1] : `f<sub>${fSub}</sub>`;
+        }
+    };
+}
 
 function updateOptions() {
     for (const meta of optionsMeta) {
@@ -308,26 +339,30 @@ function updateOptions() {
     }
     for (const name in tool.functions) {
         let text = name + "(";
-        const amount = tool.functions[name].arguments;
+        const fn = tool.functions[name];
+        const amount = fn.arguments;
+        const data = fn.argumentData ?? ["number"];
+        const {x, f} = makeXFCounter();
         if (amount === Infinity) {
-            text += `x<sub>1</sub>, x<sub>2</sub>, ...`;
-        } else if (amount <= fastVariables.length) {
-            text += fastVariables.slice(0, amount).join(", ");
+            data.push(data[data.length - 1]);
+            text += data.map((i, j) => {
+                const m = i === "number" ? x() : f();
+                if (j === data.length - 1) return `${m}, ...`;
+                return m;
+            }).join(", ");
         } else {
             for (let i = 1; i <= amount; i++) {
-                text += `x<sub>${i}</sub>`;
+                text += data[i - 1] === "function" ? f() : x();
                 if (i !== amount) text += `, `;
             }
         }
-        addShortcut(text + ")", name + "(" + (amount === 0 ? ")" : ""))
+        addShortcut(text + ")", name + "(" + (amount === 0 ? ")" : ""));
     }
 }
 
-for (const el of githubIcons) {
-    el.addEventListener("click", () => {
-        open("https://github.com/OguzhanUmutlu/precision-calculator", "_blank");
-    });
-}
+for (const el of githubIcons) el.addEventListener("click", () => {
+    open("https://github.com/OguzhanUmutlu/precision-calculator", "_blank");
+});
 
 let githubVisibility = true;
 

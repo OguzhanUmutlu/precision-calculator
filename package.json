@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "bignumber.js": "^9.1.2",
+    "complex.js": "^2.1.1",
     "decimal.js": "^10.4.3",
     "fraction.js": "^4.3.7",
     "gh-pages": "^6.0.0",
