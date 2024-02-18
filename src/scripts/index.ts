@@ -52,7 +52,7 @@ const optionsMeta = [
         Complex: "complex"
     }),
     mkOptMeta("Show input", "showInput", "true", "checkbox", null, null, null),
-    mkOptMeta("Strict mode", "strictMode", "false", "checkbox", null, "strictMode", (a: any) => a),
+    //mkOptMeta("Strict mode", "strictMode", "false", "checkbox", null, "strictMode", (a: any) => a),
     mkOptMeta("Scientific notation", "scientificNotation", "true", "checkbox", null, null, null),
 
     mkOptMeta("Decimal places", "bnDecimalPlaces", 100, "number", "bignumber", "DECIMAL_PLACES", parseInt),
