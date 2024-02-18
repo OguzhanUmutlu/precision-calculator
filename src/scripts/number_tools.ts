@@ -36,8 +36,8 @@ const bigInf = new BigNumber("Infinity");
 
 const fractionZero = new Fraction("0");
 const fractionOne = new Fraction("1");
-const fractionPi = new Fraction(PI);
-const fractionE = new Fraction(E);
+const fractionPi = new Fraction(PI.substring(0, 309));
+const fractionE = new Fraction(E.substring(0, 309));
 
 const decimalZero = new Decimal("0");
 const decimalOne = new Decimal("1");
@@ -47,10 +47,6 @@ const decimalInf = new Decimal("Infinity");
 
 const complexThree = new Complex(3);
 const complexOneThird = Complex.ONE.div(complexThree);
-const complexI = new Complex(0, 1);
-const complexPi = new Complex(PI);
-const complexE = new Complex(E);
-const complexInf = new Complex(Infinity);
 const complexLog10 = new Complex(10).log();
 
 const bigFac: Record<number, BigNumber> = {};
