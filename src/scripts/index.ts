@@ -59,11 +59,9 @@ const optionsMeta = [
     mkOptMeta("Pow precision", "bnPowPrecision", 100, "number", "bignumber", "POW_PRECISION", parseInt),
     mkOptMeta("Crypto", "bnCrypto", "false", "checkbox", "bignumber", "CRYPTO", (a: any) => a),
 
-    mkOptMeta("Precision", "decPrecision", 20, "number", "decimal", "precision", parseInt),
-    mkOptMeta("Exp negative", "decExpNeg", -7, "number", "decimal", "toExpNeg", parseInt),
-    mkOptMeta("Exp positive", "decExpPos", 21, "number", "decimal", "toExpPos", parseInt),
-    //mkOptMeta("Min E", "decMinE", -9000000000000000, "number", "decimal", "minE", parseInt),
-    //mkOptMeta("Max E", "decMaxE", 9000000000000000, "number", "decimal", "maxE", parseInt),
+    mkOptMeta("Precision", "decPrecision", 100, "number", "decimal", "precision", parseInt),
+    mkOptMeta("Exp negative", "decExpNeg", -100, "number", "decimal", "toExpNeg", parseInt),
+    mkOptMeta("Exp positive", "decExpPos", 100, "number", "decimal", "toExpPos", parseInt),
     mkOptMeta("Crypto", "decCrypto", "false", "checkbox", "decimal", "crypto", (a: any) => a),
     mkOptMeta("As fraction", "toFraction", "true", "checkbox", "fraction", "", (a: any) => a)
 ];
